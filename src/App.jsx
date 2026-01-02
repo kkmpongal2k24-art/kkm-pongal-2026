@@ -8,6 +8,7 @@ import Contributors from './components/Contributors'
 import Expenses from './components/Expenses'
 import Games from './components/Games'
 import Winners from './components/Winners'
+import History from './components/History'
 import SignIn from './components/Auth/SignIn'
 import { getYearData, yearsApi } from './lib/api'
 import './App.css'
@@ -224,6 +225,24 @@ function App() {
           <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-h-screen">
             <div className="max-w-7xl mx-auto w-full">
               <Winners data={yearData} refreshData={refreshData} currentYear={currentYear} isLoading={isLoading} />
+            </div>
+          </main>
+        </div>
+      } />
+      <Route path="/history" element={
+        <div className="min-h-screen bg-gray-50">
+          <Header
+            currentYear={currentYear}
+            setCurrentYear={setCurrentYear}
+            data={data}
+            availableYears={availableYears}
+            saveData={saveData}
+            refreshData={refreshData}
+          />
+          <Navigation />
+          <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-h-screen">
+            <div className="max-w-7xl mx-auto w-full">
+              <History currentYear={currentYear} isLoading={isLoading} />
             </div>
           </main>
         </div>

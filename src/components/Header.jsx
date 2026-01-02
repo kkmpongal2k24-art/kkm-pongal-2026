@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { PartyPopper, Plus, Check, X, ChevronDown, LogOut, User } from "lucide-react";
+import { PartyPopper, Plus, Check, X, ChevronDown, LogOut, User, History } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Modal from "./Modal";
 import { yearsApi } from "../lib/api";
@@ -55,6 +55,18 @@ function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
 
   return (
     <header className="bg-blue-600 text-white shadow-lg relative">
+      {/* History Icon - Only show for authenticated users */}
+      {isAuthenticated && (
+        <button
+          onClick={() => navigate('/history')}
+          className="absolute top-24 right-16 bg-gray-500 hover:bg-gray-400 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center z-10"
+          title="History"
+        >
+          <History className="h-4 w-4" />
+        </button>
+      )}
+
+      {/* User/Logout Icon */}
       {isAuthenticated ? (
         <button
           onClick={handleSignOut}

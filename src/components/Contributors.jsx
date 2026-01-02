@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { contributorsApi, yearsApi } from '../lib/api'
+import { contributorsApi, yearsApi, logActivity } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import { IndianRupee, Plus, CheckCircle, Clock, Pencil, Trash2 } from 'lucide-react'
 import LoadingButton from './LoadingButton'
@@ -7,7 +7,7 @@ import Skeleton from './Skeleton'
 import Modal from './Modal'
 
 function Contributors({ data, refreshData, currentYear, isLoading = false }) {
-  const { isAdmin } = useAuth()
+  const { isAdmin, user } = useAuth()
 
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -86,6 +86,16 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
           amount: parseFloat(formData.amount),
           is_paid: formData.isPaid
         })
+
+        // Log history for update
+        await logActivity(
+          user?.email,
+          'update',
+          'contributor',
+          formData.name.trim(),
+          { amount: parseFloat(formData.amount), isPaid: formData.isPaid, category: activeTab },
+          yearRecord.id
+        )
       } else {
         // Create new contributor
         await contributorsApi.create({
@@ -96,6 +106,16 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
           category: activeTab,
           date: new Date().toISOString()
         })
+
+        // Log history for create
+        await logActivity(
+          user?.email,
+          'create',
+          'contributor',
+          formData.name.trim(),
+          { amount: parseFloat(formData.amount), isPaid: formData.isPaid, category: activeTab },
+          yearRecord.id
+        )
       }
 
       // Refresh data and reset form
@@ -130,12 +150,28 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
     if (!contributorToDelete) return
 
     const contributorId = contributorToDelete.id
+    const contributorName = contributorToDelete.name
+    const contributorAmount = contributorToDelete.amount
     setDeletingIds(prev => new Set([...prev, contributorId]))
     setIsDeleteModalOpen(false)
     setContributorToDelete(null)
 
     try {
       await contributorsApi.delete(contributorId)
+
+      // Log history for delete
+      const yearRecord = await yearsApi.getByYear(currentYear)
+      if (yearRecord) {
+        await logActivity(
+          user?.email,
+          'delete',
+          'contributor',
+          contributorName,
+          { amount: contributorAmount },
+          yearRecord.id
+        )
+      }
+
       await refreshData()
     } catch (error) {
       console.error('Failed to delete contributor:', error)
@@ -515,9 +551,28 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
                               onClick={async () => {
                                 setUpdatingPaymentIds(prev => new Set([...prev, contributor.id]))
                                 try {
+                                  const newPaymentStatus = !contributor.isPaid
                                   await contributorsApi.update(contributor.id, {
-                                    is_paid: !contributor.isPaid
+                                    is_paid: newPaymentStatus
                                   })
+
+                                  // Log history for payment status update
+                                  const yearRecord = await yearsApi.getByYear(currentYear)
+                                  if (yearRecord) {
+                                    await logActivity(
+                                      user?.email,
+                                      'update',
+                                      'contributor',
+                                      contributor.name,
+                                      {
+                                        amount: contributor.amount,
+                                        isPaid: newPaymentStatus,
+                                        paymentStatusChanged: true
+                                      },
+                                      yearRecord.id
+                                    )
+                                  }
+
                                   await refreshData()
                                 } catch (error) {
                                   console.error('Failed to update payment status:', error)
@@ -636,9 +691,28 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
                                 onClick={async () => {
                                   setUpdatingPaymentIds(prev => new Set([...prev, contributor.id]))
                                   try {
+                                    const newPaymentStatus = !contributor.isPaid
                                     await contributorsApi.update(contributor.id, {
-                                      is_paid: !contributor.isPaid
+                                      is_paid: newPaymentStatus
                                     })
+
+                                    // Log history for payment status update
+                                    const yearRecord = await yearsApi.getByYear(currentYear)
+                                    if (yearRecord) {
+                                      await logActivity(
+                                        user?.email,
+                                        'update',
+                                        'contributor',
+                                        contributor.name,
+                                        {
+                                          amount: contributor.amount,
+                                          isPaid: newPaymentStatus,
+                                          paymentStatusChanged: true
+                                        },
+                                        yearRecord.id
+                                      )
+                                    }
+
                                     await refreshData()
                                   } catch (error) {
                                     console.error('Failed to update payment status:', error)

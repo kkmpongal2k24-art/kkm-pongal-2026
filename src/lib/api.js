@@ -357,6 +357,119 @@ function transformGame(dbRecord) {
   }
 }
 
+// ==================== HISTORY API ====================
+export const historyApi = {
+  // Get all history activities for a specific year
+  async getByYear(yearId) {
+    const { data, error } = await supabase
+      .from('activity_history')
+      .select('*')
+      .eq('year_id', yearId)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
+  },
+
+  // Log a new activity
+  async logActivity(activity) {
+    const { data, error } = await supabase
+      .from('activity_history')
+      .insert([activity])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  // Delete old history entries (optional cleanup function)
+  async cleanup(daysToKeep = 90) {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - daysToKeep)
+
+    const { error } = await supabase
+      .from('activity_history')
+      .delete()
+      .lt('created_at', cutoffDate.toISOString())
+
+    if (error) throw error
+  }
+}
+
+// ==================== HISTORY HELPER FUNCTIONS ====================
+
+// Extract username from email (e.g., arjunan@gmail.com -> arjunan)
+export function extractUsernameFromEmail(email) {
+  if (!email) return 'Unknown User'
+  return email.split('@')[0]
+}
+
+// Log activity helper function
+export async function logActivity(userEmail, action, entity, entityName, details = {}, yearId) {
+  try {
+    const username = extractUsernameFromEmail(userEmail)
+
+    const activity = {
+      year_id: yearId,
+      username: username,
+      user_email: userEmail,
+      action: action, // 'create', 'update', 'delete'
+      entity_type: entity, // 'contributor', 'expense', 'game', 'winner'
+      entity_name: entityName,
+      description: generateActivityDescription(username, action, entity, entityName, details),
+      details: details, // JSON object with additional info
+      created_at: new Date().toISOString()
+    }
+
+    await historyApi.logActivity(activity)
+  } catch (error) {
+    console.error('Failed to log activity:', error)
+    // Don't throw error to prevent breaking the main operation
+  }
+}
+
+// Generate human-readable activity description
+function generateActivityDescription(username, action, entity, entityName, details) {
+  const actionMap = {
+    create: 'added',
+    update: 'updated',
+    delete: 'deleted'
+  }
+
+  const actionText = actionMap[action] || action
+
+  // Build description based on entity type and details
+  let description = `${username} ${actionText} ${entity} "${entityName}"`
+
+  // Add specific details based on entity type
+  if (entity === 'expense' && details.amount) {
+    description += ` for ₹${details.amount}`
+  }
+
+  if (entity === 'contributor' && details.amount) {
+    description += ` with contribution ₹${details.amount}`
+  }
+
+  if (entity === 'game' && details.organizer) {
+    description += ` (organized by ${details.organizer})`
+  }
+
+  if (entity === 'winner' && details.position) {
+    description += ` as ${details.position} place winner`
+  }
+
+  if (details.image && action === 'update') {
+    description += ` and updated image`
+  }
+
+  if (details.prize_given !== undefined) {
+    description += details.prize_given ? ` and marked prize as given` : ` and marked prize as pending`
+  }
+
+  return description
+}
+
 // Error handler wrapper
 export function withErrorHandler(apiFunction) {
   return async (...args) => {
