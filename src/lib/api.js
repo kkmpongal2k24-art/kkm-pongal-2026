@@ -352,6 +352,8 @@ function transformGame(dbRecord) {
       third: dbRecord.third_prize_id
     },
     participants: dbRecord.participants || [],
+    date: dbRecord.game_date,
+    time: dbRecord.game_time,
     created: dbRecord.created_at,
     updated: dbRecord.updated_at
   }

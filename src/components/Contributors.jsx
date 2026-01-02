@@ -24,6 +24,10 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [contributorToDelete, setContributorToDelete] = useState(null)
 
+  // Edit modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [contributorToEdit, setContributorToEdit] = useState(null)
+
   const { contributors = [] } = data
 
   // Ensure all contributors have a category (backward compatibility)
@@ -123,6 +127,8 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
       setFormData({ name: '', amount: '', isPaid: false })
       setShowForm(false)
       setEditingId(null)
+      setIsEditModalOpen(false)
+      setContributorToEdit(null)
     } catch (error) {
       console.error('Failed to save contributor:', error)
       alert('Failed to save contributor. Please try again.')
@@ -132,13 +138,14 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
   }
 
   const handleEdit = (contributor) => {
+    setContributorToEdit(contributor)
     setFormData({
       name: contributor.name,
       amount: contributor.amount.toString(),
       isPaid: contributor.isPaid || false
     })
     setEditingId(contributor.id)
-    setShowForm(true)
+    setIsEditModalOpen(true)
   }
 
   const handleDelete = (contributor) => {
@@ -189,6 +196,8 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
     setFormData({ name: '', amount: '', isPaid: false })
     setShowForm(false)
     setEditingId(null)
+    setIsEditModalOpen(false)
+    setContributorToEdit(null)
   }
 
   return (
@@ -912,6 +921,110 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
               Delete
             </button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Edit Contributor Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Contributor"
+      >
+        <div className="space-y-6">
+          {contributorToEdit && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-blue-800">
+                <IndianRupee className="h-4 w-4" />
+                Editing contributor from{" "}
+                <strong>
+                  {contributorToEdit.category === 'boys-girls' ? 'Boys & Girls' : 'Village People'}
+                </strong>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-4">
+            <div>
+              <label htmlFor="edit-name" className="block text-sm font-medium text-gray-700 mb-1">
+                Name *
+              </label>
+              <input
+                type="text"
+                id="edit-name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter contributor name"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="edit-amount" className="block text-sm font-medium text-gray-700 mb-1">
+                Amount (₹) *
+              </label>
+              <input
+                type="number"
+                id="edit-amount"
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="0"
+                min="1"
+                step="1"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Payment Status
+              </label>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="edit-isPaid"
+                  checked={formData.isPaid}
+                  onChange={(e) => setFormData({ ...formData, isPaid: e.target.checked })}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="edit-isPaid" className="ml-2 text-sm text-gray-700">
+                  <div className="flex items-center gap-1">
+                    {formData.isPaid ? (
+                      <>
+                        <CheckCircle className="h-4 w-4" />
+                        Paid
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="h-4 w-4" />
+                        Unpaid
+                      </>
+                    )}
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="lg:col-span-3 flex flex-col sm:flex-row items-start sm:items-end space-y-2 sm:space-y-0 sm:space-x-2">
+              <LoadingButton
+                type="submit"
+                loading={isSubmitting}
+                className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium transition-colors"
+                spinnerSize="small"
+              >
+                Update Contributor
+              </LoadingButton>
+              <button
+                type="button"
+                onClick={resetForm}
+                disabled={isSubmitting}
+                className="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
       </Modal>
     </div>

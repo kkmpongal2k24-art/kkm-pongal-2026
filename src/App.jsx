@@ -212,7 +212,7 @@ function App() {
         </div>
       } />
       <Route path="/winners" element={
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 overflow-hidden">
           <Header
             currentYear={currentYear}
             setCurrentYear={setCurrentYear}
@@ -222,7 +222,7 @@ function App() {
             refreshData={refreshData}
           />
           <Navigation />
-          <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-h-screen">
+          <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 h-screen overflow-y-auto">
             <div className="max-w-7xl mx-auto w-full">
               <Winners data={yearData} refreshData={refreshData} currentYear={currentYear} isLoading={isLoading} />
             </div>

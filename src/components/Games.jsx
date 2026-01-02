@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { gamesApi, yearsApi, winnersApi } from "../lib/api";
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from "../contexts/AuthContext";
 import SearchableDropdown from "./SearchableDropdown";
 import LoadingButton from "./LoadingButton";
 import Skeleton from "./Skeleton";
@@ -19,9 +19,20 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
+import Modal from "./Modal";
 
 function Games({ data, refreshData, currentYear, isLoading = false }) {
-  const { isAdmin } = useAuth()
+  const { isAdmin } = useAuth();
+
+  // Format time to 12-hour format with AM/PM
+  const formatTime = (timeString) => {
+    if (!timeString) return '';
+    const [hours, minutes] = timeString.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+  };
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -29,6 +40,10 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
   const [managingParticipants, setManagingParticipants] = useState(null);
   const [selectingWinners, setSelectingWinners] = useState(null);
   const [deletingGameId, setDeletingGameId] = useState(null);
+
+  // Edit modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [gameToEdit, setGameToEdit] = useState(null);
 
   // Loading states
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,6 +61,8 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
     firstPrizeId: "",
     secondPrizeId: "",
     thirdPrizeId: "",
+    date: "",
+    time: "",
   });
   const [participantName, setParticipantName] = useState("");
   const [winnerForm, setWinnerForm] = useState({
@@ -57,15 +74,19 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
 
   // Prevent background scrolling when modals are open
   useEffect(() => {
-    const hasModalOpen = viewingGameId || managingParticipants || deletingGameId || selectingWinners;
+    const hasModalOpen =
+      viewingGameId ||
+      managingParticipants ||
+      deletingGameId ||
+      selectingWinners;
     if (hasModalOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     }
 
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, [viewingGameId, managingParticipants, deletingGameId, selectingWinners]);
 
@@ -102,6 +123,8 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
           name: formData.name.trim(),
           organizer: formData.organizer.trim(),
           reference_link: formData.referenceLink.trim(),
+          game_date: formData.date || null,
+          game_time: formData.time || null,
           first_prize_id: formData.firstPrizeId || null,
           second_prize_id: formData.secondPrizeId || null,
           third_prize_id: formData.thirdPrizeId || null,
@@ -114,6 +137,8 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
           name: formData.name.trim(),
           organizer: formData.organizer.trim(),
           reference_link: formData.referenceLink.trim(),
+          game_date: formData.date || null,
+          game_time: formData.time || null,
           first_prize_id: formData.firstPrizeId || null,
           second_prize_id: formData.secondPrizeId || null,
           third_prize_id: formData.thirdPrizeId || null,
@@ -124,6 +149,8 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
       // Refresh data and reset form
       await refreshData();
       resetForm();
+      setIsEditModalOpen(false);
+      setGameToEdit(null);
     } catch (error) {
       console.error("Failed to save game:", error);
       alert("Failed to save game. Please try again.");
@@ -134,6 +161,7 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
 
   const handleEdit = (game) => {
     setViewingGameId(null); // Close the viewing modal when editing
+    setGameToEdit(game);
     setFormData({
       name: game.name,
       organizer: game.organizer,
@@ -141,9 +169,11 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
       firstPrizeId: (game.prizeIds && game.prizeIds.first) || "",
       secondPrizeId: (game.prizeIds && game.prizeIds.second) || "",
       thirdPrizeId: (game.prizeIds && game.prizeIds.third) || "",
+      date: game.date || "",
+      time: game.time || "",
     });
     setEditingId(game.id);
-    setShowForm(true);
+    setIsEditModalOpen(true);
   };
 
   const handleDelete = (gameId) => {
@@ -178,10 +208,14 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
       firstPrizeId: "",
       secondPrizeId: "",
       thirdPrizeId: "",
+      date: "",
+      time: "",
     });
     setParticipantName("");
     setShowForm(false);
     setEditingId(null);
+    setIsEditModalOpen(false);
+    setGameToEdit(null);
   };
 
   // Functions for managing participants separately
@@ -382,9 +416,11 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                             <p className="font-medium text-gray-900">
                               {firstPrize.item}
                             </p>
-                            <p className="text-green-600 font-semibold">
-                              ₹{firstPrize.amount.toLocaleString()}
-                            </p>
+                            {isAdmin && (
+                              <p className="text-green-600 font-semibold">
+                                ₹{firstPrize.amount.toLocaleString()}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -409,9 +445,11 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                             <p className="font-medium text-gray-900">
                               {secondPrize.item}
                             </p>
-                            <p className="text-green-600 font-semibold">
-                              ₹{secondPrize.amount.toLocaleString()}
-                            </p>
+                            {isAdmin && (
+                              <p className="text-green-600 font-semibold">
+                                ₹{secondPrize.amount.toLocaleString()}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -436,9 +474,11 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                             <p className="font-medium text-gray-900">
                               {thirdPrize.item}
                             </p>
-                            <p className="text-green-600 font-semibold">
-                              ₹{thirdPrize.amount.toLocaleString()}
-                            </p>
+                            {isAdmin && (
+                              <p className="text-green-600 font-semibold">
+                                ₹{thirdPrize.amount.toLocaleString()}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -582,9 +622,11 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                                     <p className="text-sm font-medium text-gray-900">
                                       {gamePrize.item}
                                     </p>
-                                    <p className="text-xs text-green-600">
-                                      ₹{gamePrize.amount.toLocaleString()}
-                                    </p>
+                                    {isAdmin && (
+                                      <p className="text-xs text-green-600">
+                                        ₹{gamePrize.amount.toLocaleString()}
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
                               );
@@ -605,26 +647,24 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                       No winners selected yet
                     </p>
                     {viewingGame.participants &&
-                    viewingGame.participants.length > 0 ? (
-                      isAdmin && (
-                        <button
-                          onClick={() => {
-                            setViewingGameId(null);
-                            setSelectingWinners(viewingGame.id);
-                          }}
-                          className="text-green-600 hover:text-green-800 font-medium flex items-center gap-1"
-                        >
-                          <Trophy className="h-4 w-4" />
-                          Select Winners
-                        </button>
-                      )
-                    ) : (
-                      isAdmin && (
-                        <p className="text-sm text-gray-500">
-                          Add participants first to select winners
-                        </p>
-                      )
-                    )}
+                    viewingGame.participants.length > 0
+                      ? isAdmin && (
+                          <button
+                            onClick={() => {
+                              setViewingGameId(null);
+                              setSelectingWinners(viewingGame.id);
+                            }}
+                            className="text-green-600 hover:text-green-800 font-medium flex items-center gap-1"
+                          >
+                            <Trophy className="h-4 w-4" />
+                            Select Winners
+                          </button>
+                        )
+                      : isAdmin && (
+                          <p className="text-sm text-gray-500">
+                            Add participants first to select winners
+                          </p>
+                        )}
                   </div>
                 )}
               </div>
@@ -1194,6 +1234,44 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
               />
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="date"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Game Date
+                </label>
+                <input
+                  type="date"
+                  id="date"
+                  value={formData.date}
+                  onChange={(e) =>
+                    setFormData({ ...formData, date: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="time"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Game Time
+                </label>
+                <input
+                  type="time"
+                  id="time"
+                  value={formData.time}
+                  onChange={(e) =>
+                    setFormData({ ...formData, time: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
             <div>
               <h4 className="text-md font-semibold text-gray-800 mb-3">
                 Prize Selection
@@ -1349,6 +1427,18 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                           <p className="text-sm text-gray-600">
                             Organizer: {game.organizer}
                           </p>
+                          {(game.date || game.time) && (
+                            <div className="text-sm text-purple-600 font-medium mt-1">
+                              {game.date && (
+                                <p>
+                                  போட்டி நாள்:{" "}
+                                  {new Date(game.date).toLocaleDateString()}
+                                </p>
+                              )}
+                              {game.time && <p>போட்டி நேரம்: {formatTime(game.time)}</p>}
+                            </div>
+                          )}
+
                           {game.referenceLink && (
                             <a
                               href={game.referenceLink}
@@ -1385,9 +1475,11 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                                   <div className="font-medium truncate text-xs">
                                     1st: {firstPrize.item}
                                   </div>
-                                  <div className="text-xs">
-                                    ₹{firstPrize.amount.toLocaleString()}
-                                  </div>
+                                  {isAdmin && (
+                                    <div className="text-xs">
+                                      ₹{firstPrize.amount.toLocaleString()}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )}
@@ -1405,9 +1497,11 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                                   <div className="font-medium truncate text-xs">
                                     2nd: {secondPrize.item}
                                   </div>
-                                  <div className="text-xs">
-                                    ₹{secondPrize.amount.toLocaleString()}
-                                  </div>
+                                  {isAdmin && (
+                                    <div className="text-xs">
+                                      ₹{secondPrize.amount.toLocaleString()}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )}
@@ -1425,9 +1519,11 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                                   <div className="font-medium truncate text-xs">
                                     3rd: {thirdPrize.item}
                                   </div>
-                                  <div className="text-xs">
-                                    ₹{thirdPrize.amount.toLocaleString()}
-                                  </div>
+                                  {isAdmin && (
+                                    <div className="text-xs">
+                                      ₹{thirdPrize.amount.toLocaleString()}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )}
@@ -1495,7 +1591,9 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                             className="text-purple-600 hover:text-purple-900 text-xs lg:text-sm font-medium transition-colors flex items-center gap-1 bg-purple-50 px-2 py-1 rounded"
                           >
                             <UserPlus className="h-3 w-3 lg:h-4 lg:w-4" />
-                            <span className="hidden sm:inline">Participants</span>
+                            <span className="hidden sm:inline">
+                              Participants
+                            </span>
                           </button>
                           <button
                             onClick={() => handleEdit(game)}
@@ -1554,6 +1652,239 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
 
       {/* Winner Selection Modal */}
       {renderWinnerSelectionModal()}
+
+      {/* Edit Game Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            {/* Fixed Modal Header */}
+            <div className="px-6 py-4 border-b bg-gray-50 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Gamepad2 className="h-6 w-6 text-purple-600" />
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-800">
+                      Edit Game
+                    </h2>
+                    {gameToEdit && (
+                      <p className="text-sm text-gray-600">{gameToEdit.name}</p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Modal Body */}
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <div className="p-6 space-y-6">
+                {gameToEdit && (
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm text-blue-800">
+                      <Gamepad2 className="h-4 w-4" />
+                      Editing game organized by{" "}
+                      <strong>{gameToEdit.organizer}</strong>
+                    </div>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="edit-name"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Game Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="edit-name"
+                        value={formData.name}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="e.g., Musical Chairs, Quiz Contest"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="edit-organizer"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Organizer Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="edit-organizer"
+                        value={formData.organizer}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            organizer: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Game organizer name"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="edit-referenceLink"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Reference Link
+                    </label>
+                    <input
+                      type="url"
+                      id="edit-referenceLink"
+                      value={formData.referenceLink}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          referenceLink: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="https://example.com/game-rules"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="edit-date"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Game Date
+                      </label>
+                      <input
+                        type="date"
+                        id="edit-date"
+                        value={formData.date}
+                        onChange={(e) =>
+                          setFormData({ ...formData, date: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="edit-time"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Game Time
+                      </label>
+                      <input
+                        type="time"
+                        id="edit-time"
+                        value={formData.time}
+                        onChange={(e) =>
+                          setFormData({ ...formData, time: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-md font-semibold text-gray-800 mb-3">
+                      Prize Selection
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <SearchableDropdown
+                        options={prizeOptions}
+                        value={formData.firstPrizeId}
+                        onChange={(value) =>
+                          setFormData({ ...formData, firstPrizeId: value })
+                        }
+                        placeholder="Select 1st prize..."
+                        label="1st Prize"
+                      />
+
+                      <SearchableDropdown
+                        options={prizeOptions}
+                        value={formData.secondPrizeId}
+                        onChange={(value) =>
+                          setFormData({ ...formData, secondPrizeId: value })
+                        }
+                        placeholder="Select 2nd prize..."
+                        label="2nd Prize"
+                      />
+
+                      <SearchableDropdown
+                        options={prizeOptions}
+                        value={formData.thirdPrizeId}
+                        onChange={(value) =>
+                          setFormData({ ...formData, thirdPrizeId: value })
+                        }
+                        placeholder="Select 3rd prize..."
+                        label="3rd Prize"
+                      />
+                    </div>
+                    {prizeOptions.length === 0 && (
+                      <p className="text-sm text-amber-600 mt-2">
+                        <div className="flex items-center gap-1">
+                          <Lightbulb className="h-4 w-4" />
+                          Add some prizes (with "Prize" category) in the
+                          Expenses section first to select them here.
+                        </div>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-sm text-blue-800">
+                      <UserPlus className="h-4 w-4" />
+                      <div>
+                        <p className="font-medium">Participants Management</p>
+                        <p className="text-blue-600">
+                          Add participants after creating the game using the
+                          "Manage Participants" option.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            {/* Fixed Modal Footer */}
+            <div className="px-6 py-4 border-t bg-gray-50 flex-shrink-0">
+              <div className="flex space-x-2 justify-end">
+                <LoadingButton
+                  onClick={handleSubmit}
+                  loading={isSubmitting}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium transition-colors"
+                  spinnerSize="small"
+                >
+                  Update Game
+                </LoadingButton>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  disabled={isSubmitting}
+                  className="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {games.length > 0 &&
         !viewingGameId &&

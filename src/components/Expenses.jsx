@@ -42,6 +42,10 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
 
+  // Edit modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [expenseToEdit, setExpenseToEdit] = useState(null);
+
   // Loading states
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingIds, setDeletingIds] = useState(new Set());
@@ -165,6 +169,8 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
       setFormData({ item: "", amount: "", date: "", image: null });
       setShowForm(false);
       setEditingId(null);
+      setIsEditModalOpen(false);
+      setExpenseToEdit(null);
     } catch (error) {
       console.error("Failed to save expense:", error);
       alert("Failed to save expense. Please try again.");
@@ -174,6 +180,7 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
   };
 
   const handleEdit = (expense) => {
+    setExpenseToEdit(expense);
     setFormData({
       item: expense.item,
       amount: expense.amount.toString(),
@@ -181,7 +188,7 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
       image: expense.image || null,
     });
     setEditingId(expense.id);
-    setShowForm(true);
+    setIsEditModalOpen(true);
   };
 
   const handleDelete = (expense) => {
@@ -216,6 +223,8 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
     setFormData({ item: "", amount: "", date: "", image: null });
     setShowForm(false);
     setEditingId(null);
+    setIsEditModalOpen(false);
+    setExpenseToEdit(null);
   };
 
   return (
@@ -1096,6 +1105,129 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
               Delete
             </LoadingButton>
           </div>
+        </div>
+      </Modal>
+
+      {/* Edit Expense Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title="Edit Expense"
+      >
+        <div className="space-y-6">
+          {expenseToEdit && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-blue-800">
+                {expenseToEdit.category === "Prize" ? (
+                  <Trophy className="h-4 w-4" />
+                ) : (
+                  <Package className="h-4 w-4" />
+                )}
+                Editing{" "}
+                <strong>
+                  {expenseToEdit.category === "Prize" ? "Prize" : "Other Expense"}
+                </strong>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="edit-item"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Item Name *
+                </label>
+                <input
+                  type="text"
+                  id="edit-item"
+                  value={formData.item}
+                  onChange={(e) =>
+                    setFormData({ ...formData, item: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder={
+                    expenseToEdit?.category === "Prize"
+                      ? "e.g., Gift vouchers, Trophies, etc."
+                      : "e.g., Decorations, Food, etc."
+                  }
+                  required
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="edit-amount"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Amount (₹) *
+                </label>
+                <input
+                  type="number"
+                  id="edit-amount"
+                  value={formData.amount}
+                  onChange={(e) =>
+                    setFormData({ ...formData, amount: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="0"
+                  min="1"
+                  step="1"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="edit-date"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Date
+              </label>
+              <input
+                type="date"
+                id="edit-date"
+                value={formData.date}
+                onChange={(e) =>
+                  setFormData({ ...formData, date: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent md:max-w-xs"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <ImageUpload
+                  image={formData.image}
+                  onImageChange={(image) => setFormData({ ...formData, image })}
+                  label="Expense Image (Optional)"
+                />
+              </div>
+
+              <div className="flex flex-col justify-end">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                  <LoadingButton
+                    type="submit"
+                    loading={isSubmitting}
+                    className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md font-medium transition-colors"
+                  >
+                    Update Item
+                  </LoadingButton>
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    disabled={isSubmitting}
+                    className="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-6 py-2 rounded-md font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
         </div>
       </Modal>
     </div>

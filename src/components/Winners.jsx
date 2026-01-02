@@ -256,9 +256,6 @@ function Winners({ data, refreshData, currentYear, isLoading = false }) {
                                     <p className="font-medium text-gray-900 truncate max-w-32 sm:max-w-20">
                                       {prize.item}
                                     </p>
-                                    <p className="text-green-600">
-                                      ₹{prize.amount.toLocaleString()}
-                                    </p>
                                   </div>
                                 ) : (
                                   <p className="text-xs text-gray-500">
@@ -451,9 +448,6 @@ function Winners({ data, refreshData, currentYear, isLoading = false }) {
                                     <p className="font-medium text-gray-900">
                                       {prize.item}
                                     </p>
-                                    <p className="text-sm text-green-600">
-                                      ₹{prize.amount.toLocaleString()}
-                                    </p>
                                   </div>
                                 </div>
                               ) : (
@@ -563,9 +557,6 @@ function Winners({ data, refreshData, currentYear, isLoading = false }) {
                   <h4 className="text-xl font-bold text-gray-900 mb-2">
                     {prize.item}
                   </h4>
-                  <p className="text-2xl font-bold text-green-600 mb-4">
-                    ₹{prize.amount.toLocaleString()}
-                  </p>
                   <div className="bg-gray-50 rounded-lg p-4">
                     <p className="text-sm text-gray-600 mb-1">Prize for</p>
                     <p className="font-semibold text-gray-900">
