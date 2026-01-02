@@ -74,9 +74,10 @@ function ImageUpload({ image, onImageChange, label = "Prize Image" }) {
             <button
               type="button"
               onClick={removeImage}
-              className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105"
+              title="Remove image"
             >
-              <X className="h-3 w-3" />
+              <X className="h-4 w-4" />
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-1">Click X to remove image</p>
@@ -85,8 +86,8 @@ function ImageUpload({ image, onImageChange, label = "Prize Image" }) {
         <div
           className={`relative w-full h-32 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${
             dragActive
-              ? "border-blue500 bg-blue50"
-              : "border-gray-300 bg-gray-50 hover:border-blue400 hover:bg-blue50"
+              ? "border-blue-500 bg-blue-50"
+              : "border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50"
           }`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
@@ -94,8 +95,8 @@ function ImageUpload({ image, onImageChange, label = "Prize Image" }) {
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
         >
-          <div className="text-center">
-            <Camera className="text-gray-400 h-8 w-8 mb-2" />
+          <div className="text-center flex flex-col items-center">
+            <Camera className="text-gray-400 h-8 w-8 mb-2 mx-auto" />
             <p className="text-sm text-gray-600 mb-1">
               Click to upload or drag and drop
             </p>

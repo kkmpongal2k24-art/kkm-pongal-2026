@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { generateId } from '../utils/helpers'
+import { contributorsApi, yearsApi } from '../lib/api'
 import { IndianRupee, Plus, CheckCircle, Clock, Pencil, Trash2 } from 'lucide-react'
 
-function Contributors({ data, saveData, currentYear, allData }) {
+function Contributors({ data, refreshData, currentYear }) {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState({ name: '', amount: '', isPaid: false })
@@ -47,7 +47,7 @@ function Contributors({ data, saveData, currentYear, allData }) {
     return true
   })
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!formData.name.trim() || !formData.amount || formData.amount <= 0) {
@@ -55,35 +55,42 @@ function Contributors({ data, saveData, currentYear, allData }) {
       return
     }
 
-    const updatedData = { ...allData }
-
-    if (editingId !== null) {
-      updatedData[currentYear].contributors = contributors.map(contributor =>
-        contributor.id === editingId
-          ? {
-              ...contributor,
-              name: formData.name.trim(),
-              amount: parseFloat(formData.amount),
-              isPaid: formData.isPaid
-            }
-          : contributor
-      )
-    } else {
-      const newContributor = {
-        id: generateId(),
-        name: formData.name.trim(),
-        amount: parseFloat(formData.amount),
-        isPaid: formData.isPaid,
-        category: activeTab,
-        date: new Date().toISOString()
+    try {
+      // Get year record
+      const yearRecord = await yearsApi.getByYear(currentYear)
+      if (!yearRecord) {
+        alert('Year not found. Please try again.')
+        return
       }
-      updatedData[currentYear].contributors = [...updatedContributors, newContributor]
-    }
 
-    saveData(updatedData)
-    setFormData({ name: '', amount: '', isPaid: false })
-    setShowForm(false)
-    setEditingId(null)
+      if (editingId !== null) {
+        // Update existing contributor
+        await contributorsApi.update(editingId, {
+          name: formData.name.trim(),
+          amount: parseFloat(formData.amount),
+          is_paid: formData.isPaid
+        })
+      } else {
+        // Create new contributor
+        await contributorsApi.create({
+          year_id: yearRecord.id,
+          name: formData.name.trim(),
+          amount: parseFloat(formData.amount),
+          is_paid: formData.isPaid,
+          category: activeTab,
+          date: new Date().toISOString()
+        })
+      }
+
+      // Refresh data and reset form
+      await refreshData()
+      setFormData({ name: '', amount: '', isPaid: false })
+      setShowForm(false)
+      setEditingId(null)
+    } catch (error) {
+      console.error('Failed to save contributor:', error)
+      alert('Failed to save contributor. Please try again.')
+    }
   }
 
   const handleEdit = (contributor) => {
@@ -96,11 +103,15 @@ function Contributors({ data, saveData, currentYear, allData }) {
     setShowForm(true)
   }
 
-  const handleDelete = (contributorId) => {
+  const handleDelete = async (contributorId) => {
     if (confirm('Are you sure you want to delete this contributor?')) {
-      const updatedData = { ...allData }
-      updatedData[currentYear].contributors = contributors.filter(c => c.id !== contributorId)
-      saveData(updatedData)
+      try {
+        await contributorsApi.delete(contributorId)
+        await refreshData()
+      } catch (error) {
+        console.error('Failed to delete contributor:', error)
+        alert('Failed to delete contributor. Please try again.')
+      }
     }
   }
 
@@ -393,12 +404,16 @@ function Contributors({ data, saveData, currentYear, allData }) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
-                          onClick={() => {
-                            const updatedData = { ...allData }
-                            updatedData[currentYear].contributors = contributors.map(c =>
-                              c.id === contributor.id ? { ...c, isPaid: !c.isPaid } : c
-                            )
-                            saveData(updatedData)
+                          onClick={async () => {
+                            try {
+                              await contributorsApi.update(contributor.id, {
+                                is_paid: !contributor.isPaid
+                              })
+                              await refreshData()
+                            } catch (error) {
+                              console.error('Failed to update payment status:', error)
+                              alert('Failed to update payment status. Please try again.')
+                            }
                           }}
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
                             contributor.isPaid
@@ -474,12 +489,16 @@ function Contributors({ data, saveData, currentYear, allData }) {
                         </div>
                         <div className="flex items-center space-x-2 mt-1">
                           <button
-                            onClick={() => {
-                              const updatedData = { ...allData }
-                              updatedData[currentYear].contributors = contributors.map(c =>
-                                c.id === contributor.id ? { ...c, isPaid: !c.isPaid } : c
-                              )
-                              saveData(updatedData)
+                            onClick={async () => {
+                              try {
+                                await contributorsApi.update(contributor.id, {
+                                  is_paid: !contributor.isPaid
+                                })
+                                await refreshData()
+                              } catch (error) {
+                                console.error('Failed to update payment status:', error)
+                                alert('Failed to update payment status. Please try again.')
+                              }
                             }}
                             className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors ${
                               contributor.isPaid
@@ -535,12 +554,14 @@ function Contributors({ data, saveData, currentYear, allData }) {
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No contributors yet</h3>
             <p className="text-gray-500 mb-4">Start by adding your first contributor to track funds.</p>
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-            >
-              Add First Contributor
-            </button>
+            {filterStatus === 'all' && (
+              <button
+                onClick={() => setShowForm(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                Add First Contributor
+              </button>
+            )}
           </div>
         )}
       </div>

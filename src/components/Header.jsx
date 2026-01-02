@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { PartyPopper, Plus, Check, X, ChevronDown } from "lucide-react";
 import Modal from "./Modal";
+import { yearsApi } from "../lib/api";
 
-function Header({ currentYear, setCurrentYear, data, saveData }) {
+function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
   const [showModal, setShowModal] = useState(false);
   const [showYearDropdown, setShowYearDropdown] = useState(false);
   const [newYear, setNewYear] = useState("");
   const dropdownRef = useRef(null);
 
-  const availableYears = Object.keys(data).sort();
+  const sortedAvailableYears = [...availableYears].sort();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -22,22 +23,20 @@ function Header({ currentYear, setCurrentYear, data, saveData }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleAddYear = (e) => {
+  const handleAddYear = async (e) => {
     e.preventDefault();
-    if (newYear && !data[newYear]) {
-      const updatedData = {
-        ...data,
-        [newYear]: {
-          contributors: [],
-          expenses: [],
-          games: [],
-          winners: {},
-        },
-      };
-      saveData(updatedData);
-      setCurrentYear(newYear);
-      setNewYear("");
-      setShowModal(false);
+    if (newYear && !availableYears.includes(newYear)) {
+      try {
+        await yearsApi.create(newYear);
+        setCurrentYear(newYear);
+        setNewYear("");
+        setShowModal(false);
+        // Refresh the data to get the new year
+        await refreshData();
+      } catch (error) {
+        console.error('Failed to create year:', error);
+        alert('Failed to create year. Please try again.');
+      }
     }
   };
 
@@ -74,7 +73,7 @@ function Header({ currentYear, setCurrentYear, data, saveData }) {
                 {showYearDropdown && (
                   <div className="absolute top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-full">
                     <div className="py-1 max-h-48 overflow-y-auto">
-                      {availableYears.map((year) => (
+                      {sortedAvailableYears.map((year) => (
                         <button
                           key={year}
                           onClick={() => {

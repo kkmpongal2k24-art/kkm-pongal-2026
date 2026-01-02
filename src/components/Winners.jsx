@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Trophy,
   Medal,
@@ -9,12 +9,98 @@ import {
   Check,
   Clock,
 } from "lucide-react";
+import { yearsApi, gamesApi, winnersApi, expensesApi } from "../lib/api.js";
 
-function Winners({ data, saveData, currentYear, allData }) {
+function Winners({ currentYear }) {
   const [viewingGameId, setViewingGameId] = useState(null);
   const [viewingPrizeId, setViewingPrizeId] = useState(null);
+  const [games, setGames] = useState([]);
+  const [winners, setWinners] = useState({});
+  const [expenses, setExpenses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const { games = [], winners = {}, expenses = [] } = data;
+  // Load data when component mounts
+  useEffect(() => {
+    loadData();
+  }, [currentYear]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      // Get the year record first
+      const yearRecord = await yearsApi.getByYear(currentYear);
+      if (!yearRecord) {
+        setGames([]);
+        setWinners({});
+        setExpenses([]);
+        setLoading(false);
+        return;
+      }
+
+      // Load all data in parallel
+      const [gamesData, winnersData, expensesData] = await Promise.all([
+        gamesApi.getByYear(yearRecord.id),
+        winnersApi.getByYear(yearRecord.id),
+        expensesApi.getByYear(yearRecord.id)
+      ]);
+
+      // Transform games data to match expected structure
+      const transformedGames = gamesData.map(game => ({
+        id: game.id,
+        name: game.name,
+        organizer: game.organizer,
+        referenceLink: game.reference_link,
+        prizeIds: {
+          first: game.first_prize_id,
+          second: game.second_prize_id,
+          third: game.third_prize_id
+        },
+        participants: game.participants || [],
+        created: game.created_at,
+        updated: game.updated_at
+      }));
+
+      // Transform expenses data
+      const transformedExpenses = expensesData.map(expense => ({
+        id: expense.id,
+        item: expense.item,
+        amount: parseFloat(expense.amount),
+        category: expense.category,
+        date: expense.date,
+        image: expense.image,
+        created: expense.created_at
+      }));
+
+      // Group winners by game_id
+      const winnersGrouped = winnersData.reduce((acc, winner) => {
+        if (!acc[winner.game_id]) {
+          acc[winner.game_id] = [];
+        }
+        acc[winner.game_id].push({
+          id: winner.id,
+          name: winner.name,
+          position: winner.position,
+          prize: winner.prize,
+          prizeGiven: winner.prize_given || false,
+          prizeGivenDate: winner.prize_given_date,
+          gameId: winner.game_id
+        });
+        return acc;
+      }, {});
+
+      setGames(transformedGames);
+      setWinners(winnersGrouped);
+      setExpenses(transformedExpenses);
+    } catch (err) {
+      console.error("Error loading winners data:", err);
+      setError("Failed to load winners data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Get prize for a specific position in a game
   const getPrizeForPosition = (game, position) => {
@@ -33,25 +119,48 @@ function Winners({ data, saveData, currentYear, allData }) {
   };
 
   // Toggle prize given status
-  const togglePrizeGiven = (winnerId) => {
-    const updatedData = { ...allData };
+  const togglePrizeGiven = async (winnerId) => {
+    try {
+      // Find the winner in current state
+      let winnerToUpdate = null;
+      let gameId = null;
 
-    // Find the winner across all games
-    Object.keys(updatedData[currentYear].winners || {}).forEach((gameId) => {
-      const gameWinners = updatedData[currentYear].winners[gameId] || [];
-      const winnerIndex = gameWinners.findIndex((w) => w.id === winnerId);
-
-      if (winnerIndex !== -1) {
-        updatedData[currentYear].winners[gameId][winnerIndex] = {
-          ...gameWinners[winnerIndex],
-          prizeGiven: !gameWinners[winnerIndex].prizeGiven,
-          prizeGivenDate: !gameWinners[winnerIndex].prizeGiven
-            ? new Date().toISOString()
-            : null,
-        };
-        saveData(updatedData);
+      for (const [gId, gameWinners] of Object.entries(winners)) {
+        const winner = gameWinners.find(w => w.id === winnerId);
+        if (winner) {
+          winnerToUpdate = winner;
+          gameId = gId;
+          break;
+        }
       }
-    });
+
+      if (!winnerToUpdate) {
+        console.error("Winner not found");
+        return;
+      }
+
+      const newPrizeGiven = !winnerToUpdate.prizeGiven;
+
+      // Update in database
+      await winnersApi.togglePrizeGiven(winnerId, newPrizeGiven);
+
+      // Update local state
+      setWinners(prev => ({
+        ...prev,
+        [gameId]: prev[gameId].map(winner =>
+          winner.id === winnerId
+            ? {
+                ...winner,
+                prizeGiven: newPrizeGiven,
+                prizeGivenDate: newPrizeGiven ? new Date().toISOString() : null
+              }
+            : winner
+        )
+      }));
+    } catch (err) {
+      console.error("Error updating prize status:", err);
+      setError("Failed to update prize status. Please try again.");
+    }
   };
 
   const getPositionIcon = (position) => {

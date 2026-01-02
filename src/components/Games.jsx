@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { generateId } from "../utils/helpers";
+import { gamesApi, yearsApi, winnersApi } from "../lib/api";
 import SearchableDropdown from "./SearchableDropdown";
 import {
   Gamepad2,
@@ -17,7 +17,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-function Games({ data, saveData, currentYear, allData }) {
+function Games({ data, refreshData, currentYear }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [viewingGameId, setViewingGameId] = useState(null);
@@ -50,7 +50,7 @@ function Games({ data, saveData, currentYear, allData }) {
       image: expense.image,
     }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.name.trim() || !formData.organizer.trim()) {
@@ -58,45 +58,46 @@ function Games({ data, saveData, currentYear, allData }) {
       return;
     }
 
-    const updatedData = { ...allData };
+    try {
+      // Get year record
+      const yearRecord = await yearsApi.getByYear(currentYear);
+      if (!yearRecord) {
+        alert('Year not found. Please try again.');
+        return;
+      }
 
-    if (editingId !== null) {
-      updatedData[currentYear].games = games.map((game) =>
-        game.id === editingId
-          ? {
-              ...game,
-              name: formData.name.trim(),
-              organizer: formData.organizer.trim(),
-              referenceLink: formData.referenceLink.trim(),
-              prizeIds: {
-                first: formData.firstPrizeId,
-                second: formData.secondPrizeId,
-                third: formData.thirdPrizeId,
-              },
-              participants: [],
-              updated: new Date().toISOString(),
-            }
-          : game
-      );
-    } else {
-      const newGame = {
-        id: generateId(),
-        name: formData.name.trim(),
-        organizer: formData.organizer.trim(),
-        referenceLink: formData.referenceLink.trim(),
-        prizeIds: {
-          first: formData.firstPrizeId,
-          second: formData.secondPrizeId,
-          third: formData.thirdPrizeId,
-        },
-        participants: [],
-        created: new Date().toISOString(),
-      };
-      updatedData[currentYear].games = [...games, newGame];
+      if (editingId !== null) {
+        // Update existing game
+        await gamesApi.update(editingId, {
+          name: formData.name.trim(),
+          organizer: formData.organizer.trim(),
+          reference_link: formData.referenceLink.trim(),
+          first_prize_id: formData.firstPrizeId || null,
+          second_prize_id: formData.secondPrizeId || null,
+          third_prize_id: formData.thirdPrizeId || null,
+          participants: [] // Keep existing participants, will be updated separately
+        });
+      } else {
+        // Create new game
+        await gamesApi.create({
+          year_id: yearRecord.id,
+          name: formData.name.trim(),
+          organizer: formData.organizer.trim(),
+          reference_link: formData.referenceLink.trim(),
+          first_prize_id: formData.firstPrizeId || null,
+          second_prize_id: formData.secondPrizeId || null,
+          third_prize_id: formData.thirdPrizeId || null,
+          participants: []
+        });
+      }
+
+      // Refresh data and reset form
+      await refreshData();
+      resetForm();
+    } catch (error) {
+      console.error('Failed to save game:', error);
+      alert('Failed to save game. Please try again.');
     }
-
-    saveData(updatedData);
-    resetForm();
   };
 
   const handleEdit = (game) => {
@@ -116,19 +117,24 @@ function Games({ data, saveData, currentYear, allData }) {
     setDeletingGameId(gameId);
   };
 
-  const confirmDelete = (gameId) => {
-    const updatedData = { ...allData };
-    updatedData[currentYear].games = games.filter((g) => g.id !== gameId);
+  const confirmDelete = async (gameId) => {
+    try {
+      // Delete associated winners first
+      const gameWinners = winners[gameId] || [];
+      for (const winner of gameWinners) {
+        await winnersApi.delete(winner.id);
+      }
 
-    if (
-      updatedData[currentYear].winners &&
-      updatedData[currentYear].winners[gameId]
-    ) {
-      delete updatedData[currentYear].winners[gameId];
+      // Delete the game
+      await gamesApi.delete(gameId);
+
+      // Refresh data
+      await refreshData();
+      setDeletingGameId(null);
+    } catch (error) {
+      console.error('Failed to delete game:', error);
+      alert('Failed to delete game. Please try again.');
     }
-
-    saveData(updatedData);
-    setDeletingGameId(null);
   };
 
   const resetForm = () => {
@@ -146,79 +152,79 @@ function Games({ data, saveData, currentYear, allData }) {
   };
 
   // Functions for managing participants separately
-  const addParticipantToGame = (gameId) => {
+  const addParticipantToGame = async (gameId) => {
     if (participantName.trim()) {
-      const updatedData = { ...allData };
-      const gameIndex = updatedData[currentYear].games.findIndex(
-        (g) => g.id === gameId
-      );
-      if (gameIndex !== -1) {
-        const currentParticipants =
-          updatedData[currentYear].games[gameIndex].participants || [];
-        if (!currentParticipants.includes(participantName.trim())) {
-          updatedData[currentYear].games[gameIndex].participants = [
-            ...currentParticipants,
-            participantName.trim(),
-          ];
-          saveData(updatedData);
+      try {
+        const game = games.find(g => g.id === gameId);
+        if (game) {
+          const currentParticipants = game.participants || [];
+          if (!currentParticipants.includes(participantName.trim())) {
+            const updatedParticipants = [...currentParticipants, participantName.trim()];
+            await gamesApi.update(gameId, {
+              participants: updatedParticipants
+            });
+            await refreshData();
+          }
         }
+        setParticipantName("");
+      } catch (error) {
+        console.error('Failed to add participant:', error);
+        alert('Failed to add participant. Please try again.');
       }
-      setParticipantName("");
     }
   };
 
-  const removeParticipantFromGame = (gameId, participantIndex) => {
-    const updatedData = { ...allData };
-    const gameIndex = updatedData[currentYear].games.findIndex(
-      (g) => g.id === gameId
-    );
-    if (gameIndex !== -1) {
-      updatedData[currentYear].games[gameIndex].participants = updatedData[
-        currentYear
-      ].games[gameIndex].participants.filter((_, i) => i !== participantIndex);
-      saveData(updatedData);
+  const removeParticipantFromGame = async (gameId, participantIndex) => {
+    try {
+      const game = games.find(g => g.id === gameId);
+      if (game) {
+        const currentParticipants = game.participants || [];
+        const updatedParticipants = currentParticipants.filter((_, i) => i !== participantIndex);
+        await gamesApi.update(gameId, {
+          participants: updatedParticipants
+        });
+        await refreshData();
+      }
+    } catch (error) {
+      console.error('Failed to remove participant:', error);
+      alert('Failed to remove participant. Please try again.');
     }
   };
 
   // Functions for managing winners
-  const addWinnerToGame = (gameId) => {
+  const addWinnerToGame = async (gameId) => {
     if (winnerForm.participant && winnerForm.position) {
-      const updatedData = { ...allData };
-      const newWinner = {
-        id: generateId(),
-        name: winnerForm.participant,
-        position: winnerForm.position,
-        gameId: gameId,
-        prizeGiven: false,
-        created: new Date().toISOString(),
-      };
+      try {
+        const yearRecord = await yearsApi.getByYear(currentYear);
+        if (!yearRecord) {
+          alert('Year not found. Please try again.');
+          return;
+        }
 
-      if (!updatedData[currentYear].winners) {
-        updatedData[currentYear].winners = {};
-      }
-      if (!updatedData[currentYear].winners[gameId]) {
-        updatedData[currentYear].winners[gameId] = [];
-      }
+        await winnersApi.create({
+          year_id: yearRecord.id,
+          game_id: gameId,
+          name: winnerForm.participant,
+          position: winnerForm.position,
+          prize_given: false
+        });
 
-      updatedData[currentYear].winners[gameId] = [
-        ...updatedData[currentYear].winners[gameId],
-        newWinner,
-      ];
-      saveData(updatedData);
-      setWinnerForm({ participant: "", position: "1st" });
+        await refreshData();
+        setWinnerForm({ participant: "", position: "1st" });
+      } catch (error) {
+        console.error('Failed to add winner:', error);
+        alert('Failed to add winner. Please try again.');
+      }
     }
   };
 
-  const removeWinnerFromGame = (gameId, winnerId) => {
-    const updatedData = { ...allData };
-    if (
-      updatedData[currentYear].winners &&
-      updatedData[currentYear].winners[gameId]
-    ) {
-      updatedData[currentYear].winners[gameId] = updatedData[
-        currentYear
-      ].winners[gameId].filter((w) => w.id !== winnerId);
-      saveData(updatedData);
+  const removeWinnerFromGame = async (gameId, winnerId) => {
+    try {
+      await winnersApi.delete(winnerId);
+      await refreshData();
+    } catch (error) {
+      console.error('Failed to remove winner:', error);
+      alert('Failed to remove winner. Please try again.');
     }
   };
 
@@ -508,14 +514,11 @@ function Games({ data, saveData, currentYear, allData }) {
                           {(() => {
                             const gamePrize = getSelectedPrize(
                               winner.position === "1st"
-                                ? viewingGame.prizeIds &&
-                                    viewingGame.prizeIds.first
+                                ? (viewingGame.prizeIds && viewingGame.prizeIds.first)
                                 : winner.position === "2nd"
-                                ? viewingGame.prizeIds &&
-                                  viewingGame.prizeIds.second
+                                ? (viewingGame.prizeIds && viewingGame.prizeIds.second)
                                 : winner.position === "3rd"
-                                ? viewingGame.prizeIds &&
-                                  viewingGame.prizeIds.third
+                                ? (viewingGame.prizeIds && viewingGame.prizeIds.third)
                                 : null
                             );
                             if (gamePrize) {
@@ -863,15 +866,15 @@ function Games({ data, saveData, currentYear, allData }) {
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 sm:p-6 z-50 backdrop-blur-sm">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl min-h-[600px] max-h-[85vh] flex flex-col border border-gray-200">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl min-h-[600px] max-h-[85vh] flex flex-col border border-gray-200 mx-auto">
           {/* Fixed Header */}
-          <div className="px-6 py-4 border-b bg-gradient-to-r from-yellow-50 to-blue50 flex-shrink-0 rounded-t-xl">
+          <div className="px-6 py-4 border-b bg-gradient-to-r from-yellow-50 to-blue-50 flex-shrink-0 rounded-t-xl">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="flex items-center gap-3 flex-1 min-w-0 justify-center">
                 <div className="p-2 bg-yellow-100 rounded-lg">
                   <Trophy className="h-5 w-5 text-yellow-600" />
                 </div>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 text-center">
                   <h3 className="text-lg font-bold text-gray-900 truncate">
                     Select Winners
                   </h3>
@@ -895,13 +898,13 @@ function Games({ data, saveData, currentYear, allData }) {
               {/* Add Winner Section */}
               {availableParticipants.length > 0 && (
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
-                  <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center justify-center gap-2 mb-4">
                     <Trophy className="h-5 w-5 text-green-600" />
                     <h4 className="text-lg font-semibold text-gray-800">
                       Add New Winner
                     </h4>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
                     <select
                       value={winnerForm.participant}
                       onChange={(e) =>
@@ -950,15 +953,15 @@ function Games({ data, saveData, currentYear, allData }) {
               {/* Current Winners */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mx-auto">
                     <Trophy className="h-5 w-5 text-gray-600" />
                     <h4 className="text-lg font-semibold text-gray-800">
                       Current Winners
                     </h4>
+                    <span className="ml-2 px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">
+                      {gameWinners.length} Selected
+                    </span>
                   </div>
-                  <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">
-                    {gameWinners.length} Selected
-                  </span>
                 </div>
 
                 {gameWinners.length > 0 ? (
@@ -988,7 +991,7 @@ function Games({ data, saveData, currentYear, allData }) {
                               ) : winner.position === "2nd" ? (
                                 <Medal className="h-5 w-5 text-gray-600" />
                               ) : winner.position === "3rd" ? (
-                                <Medal className="h-5 w-5 text-blue600" />
+                                <Medal className="h-5 w-5 text-blue-600" />
                               ) : (
                                 <Trophy className="h-5 w-5 text-green-600" />
                               )}

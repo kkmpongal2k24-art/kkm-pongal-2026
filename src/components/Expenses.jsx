@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { generateId } from '../utils/helpers'
+import { expensesApi, yearsApi } from '../lib/api'
 import ImageUpload from './ImageUpload'
 import { ShoppingBag, Plus, DollarSign, AlertTriangle, CreditCard, Trophy, Package, Filter, Eye, ArrowLeft, Calendar, Tag, Pencil, Trash2, X } from 'lucide-react'
 
-function Expenses({ data, saveData, currentYear, allData }) {
+function Expenses({ data, refreshData, currentYear }) {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState({ item: '', amount: '', date: '', image: null })
@@ -25,7 +25,7 @@ function Expenses({ data, saveData, currentYear, allData }) {
   const prizeExpenses = expenses.filter(e => e.category === 'Prize' || !e.category).reduce((sum, expense) => sum + expense.amount, 0)
   const otherExpenses = expenses.filter(e => e.category === 'Other').reduce((sum, expense) => sum + expense.amount, 0)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
     if (!formData.item.trim() || !formData.amount || formData.amount <= 0) {
@@ -33,41 +33,47 @@ function Expenses({ data, saveData, currentYear, allData }) {
       return
     }
 
-    // Auto-set category based on current filter (except for 'all')
-    const category = filterCategory === 'all' ? 'Prize' : filterCategory
-
-    const updatedData = { ...allData }
-
-    if (editingId !== null) {
-      updatedData[currentYear].expenses = expenses.map(expense =>
-        expense.id === editingId
-          ? {
-              ...expense,
-              item: formData.item.trim(),
-              amount: parseFloat(formData.amount),
-              date: formData.date || new Date().toISOString().split('T')[0],
-              image: formData.image,
-              category: category
-            }
-          : expense
-      )
-    } else {
-      const newExpense = {
-        id: generateId(),
-        item: formData.item.trim(),
-        amount: parseFloat(formData.amount),
-        date: formData.date || new Date().toISOString().split('T')[0],
-        image: formData.image,
-        category: category,
-        created: new Date().toISOString()
+    try {
+      // Get year record
+      const yearRecord = await yearsApi.getByYear(currentYear)
+      if (!yearRecord) {
+        alert('Year not found. Please try again.')
+        return
       }
-      updatedData[currentYear].expenses = [...expenses, newExpense]
-    }
 
-    saveData(updatedData)
-    setFormData({ item: '', amount: '', date: '' })
-    setShowForm(false)
-    setEditingId(null)
+      // Auto-set category based on current filter (except for 'all')
+      const category = filterCategory === 'all' ? 'Prize' : filterCategory
+
+      if (editingId !== null) {
+        // Update existing expense
+        await expensesApi.update(editingId, {
+          item: formData.item.trim(),
+          amount: parseFloat(formData.amount),
+          date: formData.date || new Date().toISOString().split('T')[0],
+          image: formData.image,
+          category: category
+        })
+      } else {
+        // Create new expense
+        await expensesApi.create({
+          year_id: yearRecord.id,
+          item: formData.item.trim(),
+          amount: parseFloat(formData.amount),
+          date: formData.date || new Date().toISOString().split('T')[0],
+          image: formData.image,
+          category: category
+        })
+      }
+
+      // Refresh data and reset form
+      await refreshData()
+      setFormData({ item: '', amount: '', date: '', image: null })
+      setShowForm(false)
+      setEditingId(null)
+    } catch (error) {
+      console.error('Failed to save expense:', error)
+      alert('Failed to save expense. Please try again.')
+    }
   }
 
   const handleEdit = (expense) => {
@@ -81,11 +87,15 @@ function Expenses({ data, saveData, currentYear, allData }) {
     setShowForm(true)
   }
 
-  const handleDelete = (expenseId) => {
+  const handleDelete = async (expenseId) => {
     if (confirm('Are you sure you want to delete this expense?')) {
-      const updatedData = { ...allData }
-      updatedData[currentYear].expenses = expenses.filter(e => e.id !== expenseId)
-      saveData(updatedData)
+      try {
+        await expensesApi.delete(expenseId)
+        await refreshData()
+      } catch (error) {
+        console.error('Failed to delete expense:', error)
+        alert('Failed to delete expense. Please try again.')
+      }
     }
   }
 
@@ -167,7 +177,12 @@ function Expenses({ data, saveData, currentYear, allData }) {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-center space-x-1">
               <button
-                onClick={() => setFilterCategory('all')}
+                onClick={() => {
+                  setFilterCategory('all')
+                  setShowForm(false)
+                  setEditingId(null)
+                  setViewingExpenseId(null)
+                }}
                 className={`px-6 md:px-8 py-3 md:py-4 text-sm md:text-base font-medium whitespace-nowrap transition-all duration-200 border-b-2 ${
                   filterCategory === 'all'
                     ? 'text-blue-600 border-blue-600 bg-blue-50'
@@ -180,7 +195,12 @@ function Expenses({ data, saveData, currentYear, allData }) {
                 </div>
               </button>
               <button
-                onClick={() => setFilterCategory('Prize')}
+                onClick={() => {
+                  setFilterCategory('Prize')
+                  setShowForm(false)
+                  setEditingId(null)
+                  setViewingExpenseId(null)
+                }}
                 className={`px-6 md:px-8 py-3 md:py-4 text-sm md:text-base font-medium whitespace-nowrap transition-all duration-200 border-b-2 ${
                   filterCategory === 'Prize'
                     ? 'text-blue-600 border-blue-600 bg-blue-50'
@@ -193,7 +213,12 @@ function Expenses({ data, saveData, currentYear, allData }) {
                 </div>
               </button>
               <button
-                onClick={() => setFilterCategory('Other')}
+                onClick={() => {
+                  setFilterCategory('Other')
+                  setShowForm(false)
+                  setEditingId(null)
+                  setViewingExpenseId(null)
+                }}
                 className={`px-6 md:px-8 py-3 md:py-4 text-sm md:text-base font-medium whitespace-nowrap transition-all duration-200 border-b-2 ${
                   filterCategory === 'Other'
                     ? 'text-blue-600 border-blue-600 bg-blue-50'
@@ -549,15 +574,17 @@ function Expenses({ data, saveData, currentYear, allData }) {
             <ShoppingBag className="text-gray-400 h-16 w-16 mb-4 mx-auto" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No expenses yet</h3>
             <p className="text-gray-500 mb-4">Start by adding your first expense or purchase.</p>
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Add First Expense
-              </div>
-            </button>
+            {filterCategory !== 'all' && (
+              <button
+                onClick={() => setShowForm(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add First Expense
+                </div>
+              </button>
+            )}
           </div>
         )}
       </div>
