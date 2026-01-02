@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { gamesApi, yearsApi, winnersApi } from "../lib/api";
 import SearchableDropdown from "./SearchableDropdown";
 import LoadingButton from "./LoadingButton";
@@ -31,7 +31,9 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingIds, setDeletingIds] = useState(new Set());
   const [addingParticipantIds, setAddingParticipantIds] = useState(new Set());
-  const [removingParticipantIds, setRemovingParticipantIds] = useState(new Set());
+  const [removingParticipantIds, setRemovingParticipantIds] = useState(
+    new Set()
+  );
   const [addingWinnerIds, setAddingWinnerIds] = useState(new Set());
   const [removingWinnerIds, setRemovingWinnerIds] = useState(new Set());
   const [formData, setFormData] = useState({
@@ -49,6 +51,20 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
   });
 
   const { games = [], winners = {}, expenses = [] } = data;
+
+  // Prevent background scrolling when modals are open
+  useEffect(() => {
+    const hasModalOpen = viewingGameId || managingParticipants || deletingGameId || selectingWinners;
+    if (hasModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [viewingGameId, managingParticipants, deletingGameId, selectingWinners]);
 
   // Create prize options from expenses (only Prize category items)
   const prizeOptions = expenses
@@ -73,7 +89,7 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
       // Get year record
       const yearRecord = await yearsApi.getByYear(currentYear);
       if (!yearRecord) {
-        alert('Year not found. Please try again.');
+        alert("Year not found. Please try again.");
         return;
       }
 
@@ -86,7 +102,7 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
           first_prize_id: formData.firstPrizeId || null,
           second_prize_id: formData.secondPrizeId || null,
           third_prize_id: formData.thirdPrizeId || null,
-          participants: [] // Keep existing participants, will be updated separately
+          participants: [], // Keep existing participants, will be updated separately
         });
       } else {
         // Create new game
@@ -98,7 +114,7 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
           first_prize_id: formData.firstPrizeId || null,
           second_prize_id: formData.secondPrizeId || null,
           third_prize_id: formData.thirdPrizeId || null,
-          participants: []
+          participants: [],
         });
       }
 
@@ -106,8 +122,8 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
       await refreshData();
       resetForm();
     } catch (error) {
-      console.error('Failed to save game:', error);
-      alert('Failed to save game. Please try again.');
+      console.error("Failed to save game:", error);
+      alert("Failed to save game. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -145,8 +161,8 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
       await refreshData();
       setDeletingGameId(null);
     } catch (error) {
-      console.error('Failed to delete game:', error);
-      alert('Failed to delete game. Please try again.');
+      console.error("Failed to delete game:", error);
+      alert("Failed to delete game. Please try again.");
     }
   };
 
@@ -168,39 +184,44 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
   const addParticipantToGame = async (gameId) => {
     if (participantName.trim()) {
       try {
-        const game = games.find(g => g.id === gameId);
+        const game = games.find((g) => g.id === gameId);
         if (game) {
           const currentParticipants = game.participants || [];
           if (!currentParticipants.includes(participantName.trim())) {
-            const updatedParticipants = [...currentParticipants, participantName.trim()];
+            const updatedParticipants = [
+              ...currentParticipants,
+              participantName.trim(),
+            ];
             await gamesApi.update(gameId, {
-              participants: updatedParticipants
+              participants: updatedParticipants,
             });
             await refreshData();
           }
         }
         setParticipantName("");
       } catch (error) {
-        console.error('Failed to add participant:', error);
-        alert('Failed to add participant. Please try again.');
+        console.error("Failed to add participant:", error);
+        alert("Failed to add participant. Please try again.");
       }
     }
   };
 
   const removeParticipantFromGame = async (gameId, participantIndex) => {
     try {
-      const game = games.find(g => g.id === gameId);
+      const game = games.find((g) => g.id === gameId);
       if (game) {
         const currentParticipants = game.participants || [];
-        const updatedParticipants = currentParticipants.filter((_, i) => i !== participantIndex);
+        const updatedParticipants = currentParticipants.filter(
+          (_, i) => i !== participantIndex
+        );
         await gamesApi.update(gameId, {
-          participants: updatedParticipants
+          participants: updatedParticipants,
         });
         await refreshData();
       }
     } catch (error) {
-      console.error('Failed to remove participant:', error);
-      alert('Failed to remove participant. Please try again.');
+      console.error("Failed to remove participant:", error);
+      alert("Failed to remove participant. Please try again.");
     }
   };
 
@@ -210,7 +231,7 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
       try {
         const yearRecord = await yearsApi.getByYear(currentYear);
         if (!yearRecord) {
-          alert('Year not found. Please try again.');
+          alert("Year not found. Please try again.");
           return;
         }
 
@@ -219,14 +240,14 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
           game_id: gameId,
           name: winnerForm.participant,
           position: winnerForm.position,
-          prize_given: false
+          prize_given: false,
         });
 
         await refreshData();
         setWinnerForm({ participant: "", position: "1st" });
       } catch (error) {
-        console.error('Failed to add winner:', error);
-        alert('Failed to add winner. Please try again.');
+        console.error("Failed to add winner:", error);
+        alert("Failed to add winner. Please try again.");
       }
     }
   };
@@ -236,8 +257,8 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
       await winnersApi.delete(winnerId);
       await refreshData();
     } catch (error) {
-      console.error('Failed to remove winner:', error);
-      alert('Failed to remove winner. Please try again.');
+      console.error("Failed to remove winner:", error);
+      alert("Failed to remove winner. Please try again.");
     }
   };
 
@@ -527,11 +548,14 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                           {(() => {
                             const gamePrize = getSelectedPrize(
                               winner.position === "1st"
-                                ? (viewingGame.prizeIds && viewingGame.prizeIds.first)
+                                ? viewingGame.prizeIds &&
+                                    viewingGame.prizeIds.first
                                 : winner.position === "2nd"
-                                ? (viewingGame.prizeIds && viewingGame.prizeIds.second)
+                                ? viewingGame.prizeIds &&
+                                  viewingGame.prizeIds.second
                                 : winner.position === "3rd"
-                                ? (viewingGame.prizeIds && viewingGame.prizeIds.third)
+                                ? viewingGame.prizeIds &&
+                                  viewingGame.prizeIds.third
                                 : null
                             );
                             if (gamePrize) {
@@ -680,7 +704,7 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                     Add New Participant
                   </h4>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-col">
                   <input
                     type="text"
                     value={participantName}
@@ -697,7 +721,7 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                   <button
                     onClick={() => addParticipantToGame(managingGame.id)}
                     disabled={!participantName.trim()}
-                    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium shadow-sm flex items-center gap-2"
+                    className="px-6  py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium shadow-sm flex items-center justify-center gap-2"
                   >
                     <UserPlus className="h-4 w-4" />
                     Add
@@ -827,13 +851,16 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
               <div className="flex items-start gap-3">
                 <Gamepad2 className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="font-medium text-red-900">{deletingGame.name}</p>
+                  <p className="font-medium text-red-900">
+                    {deletingGame.name}
+                  </p>
                   <p className="text-sm text-red-700">
                     Organized by {deletingGame.organizer}
                   </p>
                   {gameWinners.length > 0 && (
                     <p className="text-sm text-red-700 mt-1">
-                      This will also delete {gameWinners.length} winner{gameWinners.length !== 1 ? 's' : ''} for this game.
+                      This will also delete {gameWinners.length} winner
+                      {gameWinners.length !== 1 ? "s" : ""} for this game.
                     </p>
                   )}
                 </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { expensesApi, yearsApi } from '../lib/api'
 import ImageUpload from './ImageUpload'
 import { ShoppingBag, Plus, DollarSign, AlertTriangle, CreditCard, Trophy, Package, Filter, Eye, ArrowLeft, Calendar, Tag, Pencil, Trash2, X } from 'lucide-react'
@@ -22,6 +22,19 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
   const [deletingIds, setDeletingIds] = useState(new Set())
 
   const { expenses = [], contributors = [] } = data
+
+  // Prevent background scrolling when modals are open
+  useEffect(() => {
+    if (viewingExpenseId) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [viewingExpenseId]);
 
   // Filter expenses by category
   const filteredExpenses = expenses.filter(expense => {
@@ -911,15 +924,18 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
             <button
               onClick={() => setIsDeleteModalOpen(false)}
               className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md font-medium transition-colors"
+              disabled={deletingIds.has(expenseToDelete?.id)}
             >
               Cancel
             </button>
-            <button
+            <LoadingButton
               onClick={handleConfirmDelete}
+              loading={deletingIds.has(expenseToDelete?.id)}
               className="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-md font-medium transition-colors"
+              spinnerSize="small"
             >
               Delete
-            </button>
+            </LoadingButton>
           </div>
         </div>
       </Modal>

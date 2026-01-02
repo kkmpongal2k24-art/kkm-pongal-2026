@@ -350,7 +350,7 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-end space-y-2 sm:space-y-0 sm:space-x-2">
+            <div className="lg:col-span-4 flex flex-col sm:flex-row items-start sm:items-end space-y-2 sm:space-y-0 sm:space-x-2">
               <LoadingButton
                 type="submit"
                 loading={isSubmitting}
