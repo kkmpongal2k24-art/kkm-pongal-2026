@@ -258,31 +258,33 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
         </div>
       )}
 
-      {/* Category Tabs */}
-      <div className="bg-white rounded-xl shadow-sm border p-4 sm:p-6">
-        <div className="flex space-x-1">
-          <button
-            onClick={() => setActiveTab('boys-girls')}
-            className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
-              activeTab === 'boys-girls'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Boys & Girls
-          </button>
-          <button
-            onClick={() => setActiveTab('village-people')}
-            className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
-              activeTab === 'village-people'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Village People
-          </button>
+      {/* Category Tabs - Only show for admin users */}
+      {isAdmin && (
+        <div className="bg-white rounded-xl shadow-sm border p-4 sm:p-6">
+          <div className="flex space-x-1">
+            <button
+              onClick={() => setActiveTab('boys-girls')}
+              className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
+                activeTab === 'boys-girls'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Boys & Girls
+            </button>
+            <button
+              onClick={() => setActiveTab('village-people')}
+              className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
+                activeTab === 'village-people'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Village People
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {showForm && (
         <div className="bg-white rounded-xl shadow-sm border p-4 sm:p-6">
@@ -375,258 +377,139 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="px-4 sm:px-6 py-4 border-b bg-gray-50">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h3 className="text-lg font-semibold text-gray-800">Contributors List</h3>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setFilterStatus('all')}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                  filterStatus === 'all'
-                    ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                All ({categoryContributors.length})
-              </button>
-              <button
-                onClick={() => setFilterStatus('paid')}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                  filterStatus === 'paid'
-                    ? 'bg-green-100 text-green-800 border border-green-200'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Paid ({paidCount})
-              </button>
-              <button
-                onClick={() => setFilterStatus('unpaid')}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                  filterStatus === 'unpaid'
-                    ? 'bg-red-100 text-red-800 border border-red-200'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Unpaid ({unpaidCount})
-              </button>
+      {/* Contributors List - Only show for admin users */}
+      {isAdmin && (
+        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <div className="px-4 sm:px-6 py-4 border-b bg-gray-50">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h3 className="text-lg font-semibold text-gray-800">Contributors List</h3>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setFilterStatus('all')}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    filterStatus === 'all'
+                      ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  All ({categoryContributors.length})
+                </button>
+                <button
+                  onClick={() => setFilterStatus('paid')}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    filterStatus === 'paid'
+                      ? 'bg-green-100 text-green-800 border border-green-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Paid ({paidCount})
+                </button>
+                <button
+                  onClick={() => setFilterStatus('unpaid')}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    filterStatus === 'unpaid'
+                      ? 'bg-red-100 text-red-800 border border-red-200'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Unpaid ({unpaidCount})
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {isLoading ? (
-          <>
-            {/* Desktop Table View - Skeleton */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Amount
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Payment Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {Array.from({ length: 3 }, (_, i) => (
-                    <tr key={i} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Skeleton variant="table-row" />
-                      </td>
+          {isLoading ? (
+            <>
+              {/* Desktop Table View - Skeleton */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Payment Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {Array.from({ length: 3 }, (_, i) => (
+                      <tr key={i} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Skeleton variant="table-row" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            {/* Mobile Card View - Skeleton */}
-            <div className="md:hidden divide-y divide-gray-200">
-              {Array.from({ length: 3 }, (_, i) => (
-                <div key={i} className="p-4">
-                  <Skeleton variant="card" />
-                </div>
-              ))}
-            </div>
-          </>
-        ) : categoryContributors.length > 0 ? (
-          <>
-            {/* Desktop Table View */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Amount
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Payment Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredContributors.map((contributor) => (
-                    <tr key={contributor.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-gray-900 font-medium text-sm">
-                              {contributor.name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">
-                              {contributor.name}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-green-600">
-                          ₹{contributor.amount.toLocaleString()}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {isAdmin ? (
-                          <LoadingButton
-                            onClick={async () => {
-                              setUpdatingPaymentIds(prev => new Set([...prev, contributor.id]))
-                              try {
-                                await contributorsApi.update(contributor.id, {
-                                  is_paid: !contributor.isPaid
-                                })
-                                await refreshData()
-                              } catch (error) {
-                                console.error('Failed to update payment status:', error)
-                                alert('Failed to update payment status. Please try again.')
-                              } finally {
-                                setUpdatingPaymentIds(prev => {
-                                  const newSet = new Set(prev)
-                                  newSet.delete(contributor.id)
-                                  return newSet
-                                })
-                              }
-                            }}
-                            loading={updatingPaymentIds.has(contributor.id)}
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
-                              contributor.isPaid
-                                ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                                : 'bg-red-100 text-red-800 hover:bg-red-200'
-                            }`}
-                            spinnerSize="small"
-                          >
-                            <div className="flex items-center gap-1">
-                              {contributor.isPaid ? (
-                                <>
-                                  <CheckCircle className="h-4 w-4" />
-                                  Paid
-                                </>
-                              ) : (
-                                <>
-                                  <Clock className="h-4 w-4" />
-                                  Unpaid
-                                </>
-                              )}
-                            </div>
-                          </LoadingButton>
-                        ) : (
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            contributor.isPaid
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            <div className="flex items-center gap-1">
-                              {contributor.isPaid ? (
-                                <>
-                                  <CheckCircle className="h-4 w-4" />
-                                  Paid
-                                </>
-                              ) : (
-                                <>
-                                  <Clock className="h-4 w-4" />
-                                  Unpaid
-                                </>
-                              )}
-                            </div>
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">
-                          {contributor.date ? new Date(contributor.date).toLocaleDateString() : 'No date'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {isAdmin && (
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleEdit(contributor)}
-                              disabled={deletingIds.has(contributor.id)}
-                              className="text-blue-600 hover:text-blue-900 disabled:text-blue-400 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-                            >
-                              <Pencil className="h-4 w-4" />
-                              Edit
-                            </button>
-                            <LoadingButton
-                              onClick={() => handleDelete(contributor)}
-                              loading={deletingIds.has(contributor.id)}
-                              className="text-red-600 hover:text-red-900 transition-colors flex items-center gap-1"
-                              spinnerSize="small"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Delete
-                            </LoadingButton>
-                          </div>
-                        )}
-                      </td>
+              {/* Mobile Card View - Skeleton */}
+              <div className="md:hidden divide-y divide-gray-200">
+                {Array.from({ length: 3 }, (_, i) => (
+                  <div key={i} className="p-4">
+                    <Skeleton variant="card" />
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : categoryContributors.length > 0 ? (
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Amount
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Payment Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="md:hidden divide-y divide-gray-200">
-              {filteredContributors.map((contributor) => (
-                <div key={contributor.id} className="p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center flex-1">
-                      <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${
-                        contributor.isPaid ? 'bg-green-100' : 'bg-blue-100'
-                      }`}>
-                        <span className={`font-medium ${
-                          contributor.isPaid ? 'text-green-600' : 'text-gray-900'
-                        }`}>
-                          {contributor.name.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="ml-3 flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900 truncate">
-                          {contributor.name}
-                        </div>
-                        <div className="text-lg font-semibold text-green-600">
-                          ₹{contributor.amount.toLocaleString()}
-                        </div>
-                        <div className="flex items-center space-x-2 mt-1">
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredContributors.map((contributor) => (
+                      <tr key={contributor.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                              <span className="text-gray-900 font-medium text-sm">
+                                {contributor.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="ml-3">
+                              <div className="text-sm font-medium text-gray-900">
+                                {contributor.name}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-semibold text-green-600">
+                            ₹{contributor.amount.toLocaleString()}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
                           {isAdmin ? (
                             <LoadingButton
                               onClick={async () => {
@@ -648,29 +531,29 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
                                 }
                               }}
                               loading={updatingPaymentIds.has(contributor.id)}
-                              className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors ${
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
                                 contributor.isPaid
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-red-100 text-red-800'
-                              }`}
+                                  ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                  : 'bg-red-100 text-red-800 hover:bg-red-200'
+                            }`}
                               spinnerSize="small"
                             >
                               <div className="flex items-center gap-1">
-                              {contributor.isPaid ? (
-                                <>
-                                  <CheckCircle className="h-4 w-4" />
-                                  Paid
-                                </>
-                              ) : (
-                                <>
-                                  <Clock className="h-4 w-4" />
-                                  Unpaid
-                                </>
-                              )}
-                            </div>
+                                {contributor.isPaid ? (
+                                  <>
+                                    <CheckCircle className="h-4 w-4" />
+                                    Paid
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clock className="h-4 w-4" />
+                                    Unpaid
+                                  </>
+                                )}
+                              </div>
                             </LoadingButton>
                           ) : (
-                            <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                               contributor.isPaid
                                 ? 'bg-green-100 text-green-800'
                                 : 'bg-red-100 text-red-800'
@@ -690,56 +573,178 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
                               </div>
                             </span>
                           )}
-                          <span className="text-xs text-gray-500">
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">
                             {contributor.date ? new Date(contributor.date).toLocaleDateString() : 'No date'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          {isAdmin && (
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleEdit(contributor)}
+                                disabled={deletingIds.has(contributor.id)}
+                                className="text-blue-600 hover:text-blue-900 disabled:text-blue-400 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                              >
+                                <Pencil className="h-4 w-4" />
+                                Edit
+                              </button>
+                              <LoadingButton
+                                onClick={() => handleDelete(contributor)}
+                                loading={deletingIds.has(contributor.id)}
+                                className="text-red-600 hover:text-red-900 transition-colors flex items-center gap-1"
+                                spinnerSize="small"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Delete
+                              </LoadingButton>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-gray-200">
+                {filteredContributors.map((contributor) => (
+                  <div key={contributor.id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center flex-1">
+                        <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${
+                          contributor.isPaid ? 'bg-green-100' : 'bg-blue-100'
+                        }`}>
+                          <span className={`font-medium ${
+                            contributor.isPaid ? 'text-green-600' : 'text-gray-900'
+                          }`}>
+                            {contributor.name.charAt(0).toUpperCase()}
                           </span>
                         </div>
+                        <div className="ml-3 flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-900 truncate">
+                            {contributor.name}
+                          </div>
+                          <div className="text-lg font-semibold text-green-600">
+                            ₹{contributor.amount.toLocaleString()}
+                          </div>
+                          <div className="flex items-center space-x-2 mt-1">
+                            {isAdmin ? (
+                              <LoadingButton
+                                onClick={async () => {
+                                  setUpdatingPaymentIds(prev => new Set([...prev, contributor.id]))
+                                  try {
+                                    await contributorsApi.update(contributor.id, {
+                                      is_paid: !contributor.isPaid
+                                    })
+                                    await refreshData()
+                                  } catch (error) {
+                                    console.error('Failed to update payment status:', error)
+                                    alert('Failed to update payment status. Please try again.')
+                                  } finally {
+                                    setUpdatingPaymentIds(prev => {
+                                      const newSet = new Set(prev)
+                                      newSet.delete(contributor.id)
+                                      return newSet
+                                    })
+                                  }
+                                }}
+                                loading={updatingPaymentIds.has(contributor.id)}
+                                className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                  contributor.isPaid
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-red-100 text-red-800'
+                                }`}
+                                spinnerSize="small"
+                              >
+                                <div className="flex items-center gap-1">
+                                {contributor.isPaid ? (
+                                  <>
+                                    <CheckCircle className="h-4 w-4" />
+                                    Paid
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clock className="h-4 w-4" />
+                                    Unpaid
+                                  </>
+                                )}
+                              </div>
+                              </LoadingButton>
+                            ) : (
+                              <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                                contributor.isPaid
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                <div className="flex items-center gap-1">
+                                  {contributor.isPaid ? (
+                                    <>
+                                      <CheckCircle className="h-4 w-4" />
+                                      Paid
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Clock className="h-4 w-4" />
+                                      Unpaid
+                                    </>
+                                  )}
+                                </div>
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-500">
+                              {contributor.date ? new Date(contributor.date).toLocaleDateString() : 'No date'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
+                      {isAdmin && (
+                        <div className="flex flex-col space-y-2 ml-4">
+                          <button
+                            onClick={() => handleEdit(contributor)}
+                            disabled={deletingIds.has(contributor.id)}
+                            className="text-blue-600 hover:text-blue-900 disabled:text-blue-400 disabled:cursor-not-allowed text-sm font-medium flex items-center gap-1"
+                          >
+                            <Pencil className="h-3 w-3" />
+                            Edit
+                          </button>
+                          <LoadingButton
+                            onClick={() => handleDelete(contributor)}
+                            loading={deletingIds.has(contributor.id)}
+                            className="text-red-600 hover:text-red-900 text-sm font-medium flex items-center gap-1"
+                            spinnerSize="small"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            Delete
+                          </LoadingButton>
+                        </div>
+                      )}
                     </div>
-                    {isAdmin && (
-                      <div className="flex flex-col space-y-2 ml-4">
-                        <button
-                          onClick={() => handleEdit(contributor)}
-                          disabled={deletingIds.has(contributor.id)}
-                          className="text-blue-600 hover:text-blue-900 disabled:text-blue-400 disabled:cursor-not-allowed text-sm font-medium flex items-center gap-1"
-                        >
-                          <Pencil className="h-3 w-3" />
-                          Edit
-                        </button>
-                        <LoadingButton
-                          onClick={() => handleDelete(contributor)}
-                          loading={deletingIds.has(contributor.id)}
-                          className="text-red-600 hover:text-red-900 text-sm font-medium flex items-center gap-1"
-                          spinnerSize="small"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          Delete
-                        </LoadingButton>
-                      </div>
-                    )}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="px-6 py-12 text-center">
+              <div className="flex justify-center mb-4">
+                <IndianRupee className="text-gray-400 h-16 w-16 mx-auto" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No contributors yet</h3>
+              <p className="text-gray-500 mb-4">Start by adding your first contributor to track funds.</p>
+              {filterStatus === 'all' && (
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                >
+                  Add First Contributor
+                </button>
+              )}
             </div>
-          </>
-        ) : (
-          <div className="px-6 py-12 text-center">
-            <div className="flex justify-center mb-4">
-              <IndianRupee className="text-gray-400 h-16 w-16 mx-auto" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No contributors yet</h3>
-            <p className="text-gray-500 mb-4">Start by adding your first contributor to track funds.</p>
-            {filterStatus === 'all' && (
-              <button
-                onClick={() => setShowForm(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-              >
-                Add First Contributor
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
