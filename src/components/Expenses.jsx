@@ -2,13 +2,24 @@ import { useState } from 'react'
 import { expensesApi, yearsApi } from '../lib/api'
 import ImageUpload from './ImageUpload'
 import { ShoppingBag, Plus, DollarSign, AlertTriangle, CreditCard, Trophy, Package, Filter, Eye, ArrowLeft, Calendar, Tag, Pencil, Trash2, X } from 'lucide-react'
+import Modal from './Modal'
+import Skeleton from './Skeleton'
+import LoadingButton from './LoadingButton'
 
-function Expenses({ data, refreshData, currentYear }) {
+function Expenses({ data, refreshData, currentYear, isLoading = false }) {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState({ item: '', amount: '', date: '', image: null })
   const [filterCategory, setFilterCategory] = useState('all') // 'all', 'Prize', 'Other'
   const [viewingExpenseId, setViewingExpenseId] = useState(null)
+
+  // Delete modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [expenseToDelete, setExpenseToDelete] = useState(null)
+
+  // Loading states
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [deletingIds, setDeletingIds] = useState(new Set())
 
   const { expenses = [], contributors = [] } = data
 
@@ -33,6 +44,7 @@ function Expenses({ data, refreshData, currentYear }) {
       return
     }
 
+    setIsSubmitting(true)
     try {
       // Get year record
       const yearRecord = await yearsApi.getByYear(currentYear)
@@ -73,6 +85,8 @@ function Expenses({ data, refreshData, currentYear }) {
     } catch (error) {
       console.error('Failed to save expense:', error)
       alert('Failed to save expense. Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -87,15 +101,31 @@ function Expenses({ data, refreshData, currentYear }) {
     setShowForm(true)
   }
 
-  const handleDelete = async (expenseId) => {
-    if (confirm('Are you sure you want to delete this expense?')) {
-      try {
-        await expensesApi.delete(expenseId)
-        await refreshData()
-      } catch (error) {
-        console.error('Failed to delete expense:', error)
-        alert('Failed to delete expense. Please try again.')
-      }
+  const handleDelete = (expense) => {
+    setExpenseToDelete(expense)
+    setIsDeleteModalOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!expenseToDelete) return
+
+    const expenseId = expenseToDelete.id
+    setDeletingIds(prev => new Set([...prev, expenseId]))
+    setIsDeleteModalOpen(false)
+    setExpenseToDelete(null)
+
+    try {
+      await expensesApi.delete(expenseId)
+      await refreshData()
+    } catch (error) {
+      console.error('Failed to delete expense:', error)
+      alert('Failed to delete expense. Please try again.')
+    } finally {
+      setDeletingIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(expenseId)
+        return newSet
+      })
     }
   }
 
@@ -118,19 +148,33 @@ function Expenses({ data, refreshData, currentYear }) {
           </h2>
           <p className="text-gray-600 mt-1">Pongal {currentYear}</p>
           <div className="mt-3 space-y-2">
-            <p className="text-gray-600">
-              Total Expenses: <span className="font-semibold text-red-600 text-lg">₹{totalExpenses.toLocaleString()}</span>
-            </p>
-            <p className="text-gray-600">
-              Remaining Balance: <span className={`font-semibold text-lg ${remainingBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                ₹{remainingBalance.toLocaleString()}
-              </span>
-            </p>
+            {isLoading ? (
+              <>
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-5 w-40" />
+              </>
+            ) : (
+              <>
+                <p className="text-gray-600">
+                  Total Expenses: <span className="font-semibold text-red-600 text-lg">₹{totalExpenses.toLocaleString()}</span>
+                </p>
+                <p className="text-gray-600">
+                  Remaining Balance: <span className={`font-semibold text-lg ${remainingBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    ₹{remainingBalance.toLocaleString()}
+                  </span>
+                </p>
+              </>
+            )}
           </div>
         </div>
 
         {/* Expense Category Breakdown */}
-        {expenses.length > 0 && (
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        ) : expenses.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <div className="flex items-center justify-between">
@@ -173,66 +217,78 @@ function Expenses({ data, refreshData, currentYear }) {
         )}
 
         {/* Filter Tabs */}
-        <div className="bg-white shadow-md border-b">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-center space-x-1">
-              <button
-                onClick={() => {
-                  setFilterCategory('all')
-                  setShowForm(false)
-                  setEditingId(null)
-                  setViewingExpenseId(null)
-                }}
-                className={`px-6 md:px-8 py-3 md:py-4 text-sm md:text-base font-medium whitespace-nowrap transition-all duration-200 border-b-2 ${
-                  filterCategory === 'all'
-                    ? 'text-blue-600 border-blue-600 bg-blue-50'
-                    : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  <span className="font-semibold">All ({expenses.length})</span>
-                </div>
-              </button>
-              <button
-                onClick={() => {
-                  setFilterCategory('Prize')
-                  setShowForm(false)
-                  setEditingId(null)
-                  setViewingExpenseId(null)
-                }}
-                className={`px-6 md:px-8 py-3 md:py-4 text-sm md:text-base font-medium whitespace-nowrap transition-all duration-200 border-b-2 ${
-                  filterCategory === 'Prize'
-                    ? 'text-blue-600 border-blue-600 bg-blue-50'
-                    : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <Trophy className="h-4 w-4" />
-                  <span className="font-semibold">Prize ({expenses.filter(e => e.category === 'Prize' || !e.category).length})</span>
-                </div>
-              </button>
-              <button
-                onClick={() => {
-                  setFilterCategory('Other')
-                  setShowForm(false)
-                  setEditingId(null)
-                  setViewingExpenseId(null)
-                }}
-                className={`px-6 md:px-8 py-3 md:py-4 text-sm md:text-base font-medium whitespace-nowrap transition-all duration-200 border-b-2 ${
-                  filterCategory === 'Other'
-                    ? 'text-blue-600 border-blue-600 bg-blue-50'
-                    : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <Package className="h-4 w-4" />
-                  <span className="font-semibold">Others ({expenses.filter(e => e.category === 'Other').length})</span>
-                </div>
-              </button>
+        {isLoading ? (
+          <div className="bg-white shadow-md border-b">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-center space-x-1">
+                <Skeleton className="h-12 w-24" />
+                <Skeleton className="h-12 w-28" />
+                <Skeleton className="h-12 w-24" />
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-white shadow-md border-b">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-center space-x-1">
+                <button
+                  onClick={() => {
+                    setFilterCategory('all')
+                    setShowForm(false)
+                    setEditingId(null)
+                    setViewingExpenseId(null)
+                  }}
+                  className={`px-6 md:px-8 py-3 md:py-4 text-sm md:text-base font-medium whitespace-nowrap transition-all duration-200 border-b-2 ${
+                    filterCategory === 'all'
+                      ? 'text-blue-600 border-blue-600 bg-blue-50'
+                      : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    <span className="font-semibold">All ({expenses.length})</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setFilterCategory('Prize')
+                    setShowForm(false)
+                    setEditingId(null)
+                    setViewingExpenseId(null)
+                  }}
+                  className={`px-6 md:px-8 py-3 md:py-4 text-sm md:text-base font-medium whitespace-nowrap transition-all duration-200 border-b-2 ${
+                    filterCategory === 'Prize'
+                      ? 'text-blue-600 border-blue-600 bg-blue-50'
+                      : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <Trophy className="h-4 w-4" />
+                    <span className="font-semibold">Prize ({expenses.filter(e => e.category === 'Prize' || !e.category).length})</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setFilterCategory('Other')
+                    setShowForm(false)
+                    setEditingId(null)
+                    setViewingExpenseId(null)
+                  }}
+                  className={`px-6 md:px-8 py-3 md:py-4 text-sm md:text-base font-medium whitespace-nowrap transition-all duration-200 border-b-2 ${
+                    filterCategory === 'Other'
+                      ? 'text-blue-600 border-blue-600 bg-blue-50'
+                      : 'text-gray-600 border-transparent hover:text-blue-600 hover:border-blue-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <Package className="h-4 w-4" />
+                    <span className="font-semibold">Others ({expenses.filter(e => e.category === 'Other').length})</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {!showForm && (
           <button
@@ -350,19 +406,21 @@ function Expenses({ data, refreshData, currentYear }) {
 
               <div className="flex flex-col justify-end">
                 <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                  <button
+                  <LoadingButton
                     type="submit"
+                    loading={isSubmitting}
                     className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md font-medium transition-colors"
                   >
                     {editingId !== null
                       ? 'Update Item'
                       : `Add ${filterCategory === 'Prize' ? 'Prize' : 'Other Expense'}`
                     }
-                  </button>
+                  </LoadingButton>
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-md font-medium transition-colors"
+                    disabled={isSubmitting}
+                    className="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-6 py-2 rounded-md font-medium transition-colors"
                   >
                     Cancel
                   </button>
@@ -375,15 +433,64 @@ function Expenses({ data, refreshData, currentYear }) {
 
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
         <div className="px-6 py-4 border-b bg-gray-50">
-          <h3 className="text-lg font-semibold text-gray-800">
-            {filterCategory === 'all'
-              ? `Expense History (${expenses.length})`
-              : `${filterCategory} Items (${filteredExpenses.length})`
-            }
-          </h3>
+          {isLoading ? (
+            <Skeleton className="h-6 w-48" />
+          ) : (
+            <h3 className="text-lg font-semibold text-gray-800">
+              {filterCategory === 'all'
+                ? `Expense History (${expenses.length})`
+                : `${filterCategory} Items (${filteredExpenses.length})`
+              }
+            </h3>
+          )}
         </div>
 
-        {filteredExpenses.length > 0 ? (
+        {isLoading ? (
+          <>
+            {/* Desktop Table View - Skeleton */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Item
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Category
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Amount
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {Array.from({ length: 3 }, (_, i) => (
+                    <tr key={i} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Skeleton variant="table-row" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View - Skeleton */}
+            <div className="md:hidden divide-y divide-gray-200">
+              {Array.from({ length: 3 }, (_, i) => (
+                <div key={i} className="p-4">
+                  <Skeleton variant="card" />
+                </div>
+              ))}
+            </div>
+          </>
+        ) : filteredExpenses.length > 0 ? (
           <>
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
@@ -478,13 +585,15 @@ function Expenses({ data, refreshData, currentYear }) {
                             <Pencil className="h-4 w-4" />
                             Edit
                           </button>
-                          <button
-                            onClick={() => handleDelete(expense.id)}
+                          <LoadingButton
+                            onClick={() => handleDelete(expense)}
+                            loading={deletingIds.has(expense.id)}
                             className="text-red-600 hover:text-red-900 transition-colors flex items-center gap-1"
+                            spinnerSize="small"
                           >
                             <Trash2 className="h-4 w-4" />
                             Delete
-                          </button>
+                          </LoadingButton>
                         </div>
                       </td>
                     </tr>
@@ -554,13 +663,15 @@ function Expenses({ data, refreshData, currentYear }) {
                             <Pencil className="h-3 w-3" />
                             Edit
                           </button>
-                          <button
-                            onClick={() => handleDelete(expense.id)}
+                          <LoadingButton
+                            onClick={() => handleDelete(expense)}
+                            loading={deletingIds.has(expense.id)}
                             className="text-red-600 hover:text-red-900 text-sm font-medium flex items-center gap-1"
+                            spinnerSize="small"
                           >
                             <Trash2 className="h-3 w-3" />
                             Delete
-                          </button>
+                          </LoadingButton>
                         </div>
                       </div>
                     </div>
@@ -591,7 +702,13 @@ function Expenses({ data, refreshData, currentYear }) {
 
 
 
-      {expenses.length > 0 && (
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      ) : expenses.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center">
@@ -738,18 +855,17 @@ function Expenses({ data, refreshData, currentYear }) {
                         <Pencil className="h-4 w-4" />
                         Edit Expense
                       </button>
-                      <button
+                      <LoadingButton
                         onClick={() => {
-                          if (confirm('Are you sure you want to delete this expense?')) {
-                            handleDelete(viewingExpense.id)
-                            setViewingExpenseId(null)
-                          }
+                          handleDelete(viewingExpense)
+                          setViewingExpenseId(null)
                         }}
+                        loading={deletingIds.has(viewingExpense.id)}
                         className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                       >
                         <Trash2 className="h-4 w-4" />
                         Delete Expense
-                      </button>
+                      </LoadingButton>
                     </div>
                   </div>
 
@@ -779,6 +895,34 @@ function Expenses({ data, refreshData, currentYear }) {
           </div>
         )
       })()}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Delete Expense"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Are you sure you want to delete <span className="font-semibold">{expenseToDelete?.item}</span>?
+            This action cannot be undone.
+          </p>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmDelete}
+              className="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-md font-medium transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

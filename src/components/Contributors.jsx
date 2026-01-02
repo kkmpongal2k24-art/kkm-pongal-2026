@@ -1,13 +1,25 @@
 import { useState } from 'react'
 import { contributorsApi, yearsApi } from '../lib/api'
 import { IndianRupee, Plus, CheckCircle, Clock, Pencil, Trash2 } from 'lucide-react'
+import LoadingButton from './LoadingButton'
+import Skeleton from './Skeleton'
+import Modal from './Modal'
 
-function Contributors({ data, refreshData, currentYear }) {
+function Contributors({ data, refreshData, currentYear, isLoading = false }) {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState({ name: '', amount: '', isPaid: false })
   const [filterStatus, setFilterStatus] = useState('all') // 'all', 'paid', 'unpaid'
   const [activeTab, setActiveTab] = useState('boys-girls') // 'village-people', 'boys-girls'
+
+  // Loading states
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [updatingPaymentIds, setUpdatingPaymentIds] = useState(new Set())
+  const [deletingIds, setDeletingIds] = useState(new Set())
+
+  // Delete modal state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [contributorToDelete, setContributorToDelete] = useState(null)
 
   const { contributors = [] } = data
 
@@ -55,6 +67,7 @@ function Contributors({ data, refreshData, currentYear }) {
       return
     }
 
+    setIsSubmitting(true)
     try {
       // Get year record
       const yearRecord = await yearsApi.getByYear(currentYear)
@@ -90,6 +103,8 @@ function Contributors({ data, refreshData, currentYear }) {
     } catch (error) {
       console.error('Failed to save contributor:', error)
       alert('Failed to save contributor. Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -103,15 +118,31 @@ function Contributors({ data, refreshData, currentYear }) {
     setShowForm(true)
   }
 
-  const handleDelete = async (contributorId) => {
-    if (confirm('Are you sure you want to delete this contributor?')) {
-      try {
-        await contributorsApi.delete(contributorId)
-        await refreshData()
-      } catch (error) {
-        console.error('Failed to delete contributor:', error)
-        alert('Failed to delete contributor. Please try again.')
-      }
+  const handleDelete = (contributor) => {
+    setContributorToDelete(contributor)
+    setIsDeleteModalOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!contributorToDelete) return
+
+    const contributorId = contributorToDelete.id
+    setDeletingIds(prev => new Set([...prev, contributorId]))
+    setIsDeleteModalOpen(false)
+    setContributorToDelete(null)
+
+    try {
+      await contributorsApi.delete(contributorId)
+      await refreshData()
+    } catch (error) {
+      console.error('Failed to delete contributor:', error)
+      alert('Failed to delete contributor. Please try again.')
+    } finally {
+      setDeletingIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(contributorId)
+        return newSet
+      })
     }
   }
 
@@ -133,17 +164,29 @@ function Contributors({ data, refreshData, currentYear }) {
           </h2>
           <p className="text-gray-600 mt-1">Pongal {currentYear}</p>
           <div className="mt-3 space-y-2">
-            <p className="text-gray-600">
-              Total Promised: <span className="font-semibold text-blue-600 text-lg">₹{overallTotalAmount.toLocaleString()}</span>
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <p className="text-gray-600">
-                Paid: <span className="font-semibold text-green-600 text-lg">₹{overallPaidAmount.toLocaleString()}</span> <span className="text-gray-500">({overallPaidCount})</span>
-              </p>
-              <p className="text-gray-600">
-                Unpaid: <span className="font-semibold text-red-600 text-lg">₹{overallUnpaidAmount.toLocaleString()}</span> <span className="text-gray-500">({overallUnpaidCount})</span>
-              </p>
-            </div>
+            {isLoading ? (
+              <>
+                <Skeleton className="h-5 w-48" />
+                <div className="flex flex-wrap gap-4">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-5 w-36" />
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-600">
+                  Total Promised: <span className="font-semibold text-blue-600 text-lg">₹{overallTotalAmount.toLocaleString()}</span>
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  <p className="text-gray-600">
+                    Paid: <span className="font-semibold text-green-600 text-lg">₹{overallPaidAmount.toLocaleString()}</span> <span className="text-gray-500">({overallPaidCount})</span>
+                  </p>
+                  <p className="text-gray-600">
+                    Unpaid: <span className="font-semibold text-red-600 text-lg">₹{overallUnpaidAmount.toLocaleString()}</span> <span className="text-gray-500">({overallUnpaidCount})</span>
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -151,43 +194,52 @@ function Contributors({ data, refreshData, currentYear }) {
 
       {/* Category Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="text-blue-500 mr-3 text-lg">👨‍👩‍👧‍👦</div>
-              <div>
-                <h4 className="text-blue-800 font-semibold">Boys & Girls</h4>
-                <p className="text-blue-700 text-sm">
-                  {boysGirlsContributors.length} contributor{boysGirlsContributors.length !== 1 ? 's' : ''}
-                </p>
+        {isLoading ? (
+          <>
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </>
+        ) : (
+          <>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="text-blue-500 mr-3 text-lg">👨‍👩‍👧‍👦</div>
+                  <div>
+                    <h4 className="text-blue-800 font-semibold">Boys & Girls</h4>
+                    <p className="text-blue-700 text-sm">
+                      {boysGirlsContributors.length} contributor{boysGirlsContributors.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-blue-800 font-semibold text-lg">
+                    ₹{boysGirlsTotal.toLocaleString()}
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-blue-800 font-semibold text-lg">
-                ₹{boysGirlsTotal.toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </div>
 
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="text-green-500 mr-3 text-lg">🏘️</div>
-              <div>
-                <h4 className="text-green-800 font-semibold">Village People</h4>
-                <p className="text-green-700 text-sm">
-                  {villagePeopleContributors.length} contributor{villagePeopleContributors.length !== 1 ? 's' : ''}
-                </p>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="text-green-500 mr-3 text-lg">🏘️</div>
+                  <div>
+                    <h4 className="text-green-800 font-semibold">Village People</h4>
+                    <p className="text-green-700 text-sm">
+                      {villagePeopleContributors.length} contributor{villagePeopleContributors.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-green-800 font-semibold text-lg">
+                    ₹{villagePeopleTotal.toLocaleString()}
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-green-800 font-semibold text-lg">
-                ₹{villagePeopleTotal.toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* Add Contributor Button */}
@@ -299,16 +351,19 @@ function Contributors({ data, refreshData, currentYear }) {
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-end space-y-2 sm:space-y-0 sm:space-x-2">
-              <button
+              <LoadingButton
                 type="submit"
+                loading={isSubmitting}
                 className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium transition-colors"
+                spinnerSize="small"
               >
                 {editingId !== null ? 'Update' : 'Add'}
-              </button>
+              </LoadingButton>
               <button
                 type="button"
                 onClick={resetForm}
-                className="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md font-medium transition-colors"
+                disabled={isSubmitting}
+                className="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md font-medium transition-colors"
               >
                 Cancel
               </button>
@@ -356,7 +411,52 @@ function Contributors({ data, refreshData, currentYear }) {
           </div>
         </div>
 
-        {categoryContributors.length > 0 ? (
+        {isLoading ? (
+          <>
+            {/* Desktop Table View - Skeleton */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Amount
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Payment Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {Array.from({ length: 3 }, (_, i) => (
+                    <tr key={i} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Skeleton variant="table-row" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View - Skeleton */}
+            <div className="md:hidden divide-y divide-gray-200">
+              {Array.from({ length: 3 }, (_, i) => (
+                <div key={i} className="p-4">
+                  <Skeleton variant="card" />
+                </div>
+              ))}
+            </div>
+          </>
+        ) : categoryContributors.length > 0 ? (
           <>
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-x-auto">
@@ -403,8 +503,9 @@ function Contributors({ data, refreshData, currentYear }) {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <button
+                        <LoadingButton
                           onClick={async () => {
+                            setUpdatingPaymentIds(prev => new Set([...prev, contributor.id]))
                             try {
                               await contributorsApi.update(contributor.id, {
                                 is_paid: !contributor.isPaid
@@ -413,13 +514,21 @@ function Contributors({ data, refreshData, currentYear }) {
                             } catch (error) {
                               console.error('Failed to update payment status:', error)
                               alert('Failed to update payment status. Please try again.')
+                            } finally {
+                              setUpdatingPaymentIds(prev => {
+                                const newSet = new Set(prev)
+                                newSet.delete(contributor.id)
+                                return newSet
+                              })
                             }
                           }}
+                          loading={updatingPaymentIds.has(contributor.id)}
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
                             contributor.isPaid
                               ? 'bg-green-100 text-green-800 hover:bg-green-200'
                               : 'bg-red-100 text-red-800 hover:bg-red-200'
                           }`}
+                          spinnerSize="small"
                         >
                           <div className="flex items-center gap-1">
                             {contributor.isPaid ? (
@@ -434,7 +543,7 @@ function Contributors({ data, refreshData, currentYear }) {
                               </>
                             )}
                           </div>
-                        </button>
+                        </LoadingButton>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">
@@ -445,18 +554,21 @@ function Contributors({ data, refreshData, currentYear }) {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handleEdit(contributor)}
-                            className="text-blue-600 hover:text-blue-900 transition-colors flex items-center gap-1"
+                            disabled={deletingIds.has(contributor.id)}
+                            className="text-blue-600 hover:text-blue-900 disabled:text-blue-400 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
                           >
                             <Pencil className="h-4 w-4" />
                             Edit
                           </button>
-                          <button
-                            onClick={() => handleDelete(contributor.id)}
+                          <LoadingButton
+                            onClick={() => handleDelete(contributor)}
+                            loading={deletingIds.has(contributor.id)}
                             className="text-red-600 hover:text-red-900 transition-colors flex items-center gap-1"
+                            spinnerSize="small"
                           >
                             <Trash2 className="h-4 w-4" />
                             Delete
-                          </button>
+                          </LoadingButton>
                         </div>
                       </td>
                     </tr>
@@ -488,8 +600,9 @@ function Contributors({ data, refreshData, currentYear }) {
                           ₹{contributor.amount.toLocaleString()}
                         </div>
                         <div className="flex items-center space-x-2 mt-1">
-                          <button
+                          <LoadingButton
                             onClick={async () => {
+                              setUpdatingPaymentIds(prev => new Set([...prev, contributor.id]))
                               try {
                                 await contributorsApi.update(contributor.id, {
                                   is_paid: !contributor.isPaid
@@ -498,13 +611,21 @@ function Contributors({ data, refreshData, currentYear }) {
                               } catch (error) {
                                 console.error('Failed to update payment status:', error)
                                 alert('Failed to update payment status. Please try again.')
+                              } finally {
+                                setUpdatingPaymentIds(prev => {
+                                  const newSet = new Set(prev)
+                                  newSet.delete(contributor.id)
+                                  return newSet
+                                })
                               }
                             }}
+                            loading={updatingPaymentIds.has(contributor.id)}
                             className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors ${
                               contributor.isPaid
                                 ? 'bg-green-100 text-green-800'
                                 : 'bg-red-100 text-red-800'
                             }`}
+                            spinnerSize="small"
                           >
                             <div className="flex items-center gap-1">
                             {contributor.isPaid ? (
@@ -519,7 +640,7 @@ function Contributors({ data, refreshData, currentYear }) {
                               </>
                             )}
                           </div>
-                          </button>
+                          </LoadingButton>
                           <span className="text-xs text-gray-500">
                             {contributor.date ? new Date(contributor.date).toLocaleDateString() : 'No date'}
                           </span>
@@ -529,18 +650,21 @@ function Contributors({ data, refreshData, currentYear }) {
                     <div className="flex flex-col space-y-2 ml-4">
                       <button
                         onClick={() => handleEdit(contributor)}
-                        className="text-blue-600 hover:text-blue-900 text-sm font-medium flex items-center gap-1"
+                        disabled={deletingIds.has(contributor.id)}
+                        className="text-blue-600 hover:text-blue-900 disabled:text-blue-400 disabled:cursor-not-allowed text-sm font-medium flex items-center gap-1"
                       >
                         <Pencil className="h-3 w-3" />
                         Edit
                       </button>
-                      <button
-                        onClick={() => handleDelete(contributor.id)}
+                      <LoadingButton
+                        onClick={() => handleDelete(contributor)}
+                        loading={deletingIds.has(contributor.id)}
                         className="text-red-600 hover:text-red-900 text-sm font-medium flex items-center gap-1"
+                        spinnerSize="small"
                       >
                         <Trash2 className="h-3 w-3" />
                         Delete
-                      </button>
+                      </LoadingButton>
                     </div>
                   </div>
                 </div>
@@ -566,7 +690,13 @@ function Contributors({ data, refreshData, currentYear }) {
         )}
       </div>
 
-      {categoryContributors.length > 0 && (
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      ) : categoryContributors.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center justify-between">
@@ -625,7 +755,35 @@ function Contributors({ data, refreshData, currentYear }) {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Delete Contributor"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Are you sure you want to delete <span className="font-semibold">{contributorToDelete?.name}</span>?
+            This action cannot be undone.
+          </p>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmDelete}
+              className="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-md font-medium transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

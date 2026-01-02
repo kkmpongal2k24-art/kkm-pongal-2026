@@ -100,16 +100,7 @@ function App() {
 
   const yearData = data[currentYear] || { contributors: [], expenses: [], games: [], winners: {} }
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading Pongal {currentYear} data...</p>
-        </div>
-      </div>
-    )
-  }
+
 
   if (error) {
     return (
@@ -144,12 +135,12 @@ function App() {
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-h-screen">
         <div className="max-w-7xl mx-auto w-full">
           <Routes>
-            <Route path="/" element={<Dashboard data={yearData} currentYear={currentYear} />} />
-            <Route path="/dashboard" element={<Dashboard data={yearData} currentYear={currentYear} />} />
-            <Route path="/contributors" element={<Contributors data={yearData} refreshData={refreshData} currentYear={currentYear} />} />
-            <Route path="/expenses" element={<Expenses data={yearData} refreshData={refreshData} currentYear={currentYear} />} />
-            <Route path="/games" element={<Games data={yearData} refreshData={refreshData} currentYear={currentYear} />} />
-            <Route path="/winners" element={<Winners data={yearData} refreshData={refreshData} currentYear={currentYear} />} />
+            <Route path="/" element={<Dashboard data={yearData} currentYear={currentYear} isLoading={isLoading} />} />
+            <Route path="/dashboard" element={<Dashboard data={yearData} currentYear={currentYear} isLoading={isLoading} />} />
+            <Route path="/contributors" element={<Contributors data={yearData} refreshData={refreshData} currentYear={currentYear} isLoading={isLoading} />} />
+            <Route path="/expenses" element={<Expenses data={yearData} refreshData={refreshData} currentYear={currentYear} isLoading={isLoading} />} />
+            <Route path="/games" element={<Games data={yearData} refreshData={refreshData} currentYear={currentYear} isLoading={isLoading} />} />
+            <Route path="/winners" element={<Winners data={yearData} refreshData={refreshData} currentYear={currentYear} isLoading={isLoading} />} />
           </Routes>
         </div>
       </main>

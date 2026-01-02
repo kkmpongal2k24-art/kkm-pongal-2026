@@ -19,8 +19,8 @@ function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleAddYear = async (e) => {
@@ -34,8 +34,8 @@ function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
         // Refresh the data to get the new year
         await refreshData();
       } catch (error) {
-        console.error('Failed to create year:', error);
-        alert('Failed to create year. Please try again.');
+        console.error("Failed to create year:", error);
+        alert("Failed to create year. Please try again.");
       }
     }
   };
@@ -48,7 +48,7 @@ function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
             <div className="flex items-center gap-3 mb-1">
               <PartyPopper className="h-8 w-8 sm:h-10 sm:w-10 text-blue-200" />
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold truncate">
-                Pongal Games Manager
+                KKM Pongal Games Manager
               </h1>
             </div>
             <p className="text-blue-100 text-base sm:text-lg">
@@ -56,6 +56,9 @@ function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
             </p>
           </div>
 
+
+
+          {/* for for 2027 enable */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <label className="text-sm font-medium whitespace-nowrap">
@@ -67,7 +70,11 @@ function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
                   className="bg-white text-gray-800 px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm sm:text-base flex items-center gap-2 min-w-0 w-full sm:w-auto transition-colors hover:bg-gray-50"
                 >
                   <span className="truncate">Pongal {currentYear}</span>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${showYearDropdown ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${
+                      showYearDropdown ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
 
                 {showYearDropdown && (
@@ -82,8 +89,8 @@ function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
                           }}
                           className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 hover:text-blue-700 transition-colors ${
                             year === currentYear
-                              ? 'bg-blue-100 text-blue-800 font-medium'
-                              : 'text-gray-700'
+                              ? "bg-blue-100 text-blue-800 font-medium"
+                              : "text-gray-700"
                           }`}
                         >
                           Pongal {year}
@@ -95,14 +102,16 @@ function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
               </div>
             </div>
 
-            <button
+            {/* <button
               onClick={() => setShowModal(true)}
               className="bg-blue-500 hover:bg-blue-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap w-full sm:w-auto flex items-center justify-center gap-2"
             >
               <Plus className="h-4 w-4" />
               Add Year
-            </button>
+            </button> */}
           </div>
+
+
         </div>
       </div>
 
@@ -116,7 +125,10 @@ function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
       >
         <form onSubmit={handleAddYear}>
           <div className="mb-4">
-            <label htmlFor="year-input" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="year-input"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Enter Year
             </label>
             <input

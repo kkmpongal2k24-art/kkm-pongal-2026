@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { gamesApi, yearsApi, winnersApi } from "../lib/api";
 import SearchableDropdown from "./SearchableDropdown";
+import LoadingButton from "./LoadingButton";
+import Skeleton from "./Skeleton";
 import {
   Gamepad2,
   Plus,
@@ -17,13 +19,21 @@ import {
   Trash2,
 } from "lucide-react";
 
-function Games({ data, refreshData, currentYear }) {
+function Games({ data, refreshData, currentYear, isLoading = false }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [viewingGameId, setViewingGameId] = useState(null);
   const [managingParticipants, setManagingParticipants] = useState(null);
   const [selectingWinners, setSelectingWinners] = useState(null);
   const [deletingGameId, setDeletingGameId] = useState(null);
+
+  // Loading states
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingIds, setDeletingIds] = useState(new Set());
+  const [addingParticipantIds, setAddingParticipantIds] = useState(new Set());
+  const [removingParticipantIds, setRemovingParticipantIds] = useState(new Set());
+  const [addingWinnerIds, setAddingWinnerIds] = useState(new Set());
+  const [removingWinnerIds, setRemovingWinnerIds] = useState(new Set());
   const [formData, setFormData] = useState({
     name: "",
     organizer: "",
@@ -58,6 +68,7 @@ function Games({ data, refreshData, currentYear }) {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       // Get year record
       const yearRecord = await yearsApi.getByYear(currentYear);
@@ -97,6 +108,8 @@ function Games({ data, refreshData, currentYear }) {
     } catch (error) {
       console.error('Failed to save game:', error);
       alert('Failed to save game. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1049,12 +1062,16 @@ function Games({ data, refreshData, currentYear }) {
             </div>
           </h2>
           <p className="text-gray-600 mt-1">Pongal {currentYear}</p>
-          <p className="text-gray-600 mt-2">
-            Total Games:{" "}
-            <span className="font-semibold text-purple-600 text-lg">
-              {games.length}
-            </span>
-          </p>
+          {isLoading ? (
+            <Skeleton className="h-5 w-32 mt-2" />
+          ) : (
+            <p className="text-gray-600 mt-2">
+              Total Games:{" "}
+              <span className="font-semibold text-purple-600 text-lg">
+                {games.length}
+              </span>
+            </p>
+          )}
         </div>
 
         {!showForm && (
@@ -1196,16 +1213,19 @@ function Games({ data, refreshData, currentYear }) {
             </div>
 
             <div className="flex space-x-2 pt-4">
-              <button
+              <LoadingButton
                 type="submit"
+                loading={isSubmitting}
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium transition-colors"
+                spinnerSize="small"
               >
                 {editingId !== null ? "Update Game" : "Add Game"}
-              </button>
+              </LoadingButton>
               <button
                 type="button"
                 onClick={resetForm}
-                className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md font-medium transition-colors"
+                disabled={isSubmitting}
+                className="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md font-medium transition-colors"
               >
                 Cancel
               </button>
@@ -1219,7 +1239,39 @@ function Games({ data, refreshData, currentYear }) {
           <h3 className="text-lg font-semibold text-gray-800">Games List</h3>
         </div>
 
-        {games.length > 0 ? (
+        {isLoading ? (
+          <div className="divide-y divide-gray-200">
+            {Array.from({ length: 3 }, (_, i) => (
+              <div key={i} className="p-4 sm:p-6">
+                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start space-y-4 lg:space-y-0">
+                  <div className="flex-1">
+                    <div className="flex items-start mb-3">
+                      <Skeleton className="h-10 w-10 rounded-full mr-3" />
+                      <div className="flex-1 min-w-0">
+                        <Skeleton className="h-5 w-3/4 mb-2" />
+                        <Skeleton className="h-4 w-1/2" />
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <Skeleton className="h-4 w-16 mb-2" />
+                      <div className="grid grid-cols-1 gap-2">
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-4 w-48" />
+                  </div>
+                  <div className="flex flex-wrap gap-2 lg:flex-col lg:space-y-2 lg:ml-4">
+                    <Skeleton className="h-8 w-16" />
+                    <Skeleton className="h-8 w-20" />
+                    <Skeleton className="h-8 w-16" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : games.length > 0 ? (
           <div className="divide-y divide-gray-200">
             {games.map((game, index) => {
               const gameWinners = winners[game.id] || [];

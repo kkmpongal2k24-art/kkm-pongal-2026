@@ -8,10 +8,13 @@ import {
   Eye,
   Check,
   Clock,
+  ChevronDown,
 } from "lucide-react";
 import { yearsApi, gamesApi, winnersApi, expensesApi } from "../lib/api.js";
+import Skeleton from "./Skeleton";
+import Modal from "./Modal";
 
-function Winners({ currentYear }) {
+function Winners({ currentYear, isLoading = false }) {
   const [viewingGameId, setViewingGameId] = useState(null);
   const [viewingPrizeId, setViewingPrizeId] = useState(null);
   const [games, setGames] = useState([]);
@@ -19,11 +22,24 @@ function Winners({ currentYear }) {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(null);
 
   // Load data when component mounts
   useEffect(() => {
     loadData();
   }, [currentYear]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownOpen && !event.target.closest('.dropdown-container')) {
+        setDropdownOpen(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [dropdownOpen]);
 
   const loadData = async () => {
     try {
@@ -215,7 +231,43 @@ function Winners({ currentYear }) {
           Games & Winners
         </h3>
 
-        {games.length > 0 ? (
+        {(isLoading || loading) ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="p-4 rounded-lg border border-gray-200">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1 min-w-0">
+                    <Skeleton className="h-6 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                </div>
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }, (_, j) => (
+                    <div key={j} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 flex-1">
+                          <Skeleton className="h-4 w-4 rounded-full" />
+                          <div className="flex-1">
+                            <Skeleton className="h-4 w-24 mb-1" />
+                            <Skeleton className="h-3 w-16" />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <Skeleton className="h-3 w-20 mb-1" />
+                            <Skeleton className="h-3 w-16" />
+                          </div>
+                          <Skeleton className="h-8 w-8 rounded-lg" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : games.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {games.map((game) => {
               const gameWinners = winners[game.id] || [];
@@ -258,7 +310,7 @@ function Winners({ currentYear }) {
 
                   {gameWinners.length > 0 ? (
                     <div className="space-y-2">
-                      {sortedWinners.slice(0, 3).map((winner, index) => {
+                      {sortedWinners.slice(0, 3).map((winner) => {
                         const prize = getPrizeForPosition(
                           game,
                           winner.position
@@ -304,38 +356,52 @@ function Winners({ currentYear }) {
                                   </p>
                                 )}
                               </div>
-                              <div className="flex flex-col items-center gap-1">
+                              <div className="relative dropdown-container">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    togglePrizeGiven(winner.id);
+                                    setDropdownOpen(dropdownOpen === winner.id ? null : winner.id);
                                   }}
-                                  className={`p-2 sm:p-1.5 rounded-lg sm:rounded-full transition-all ${
+                                  className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-all hover:shadow-sm ${
                                     isPrizeGiven
-                                      ? "bg-green-100 text-green-600 hover:bg-green-200"
-                                      : "bg-blue-100 text-blue-600 hover:bg-blue-200"
-                                  }`}
-                                  title={
-                                    isPrizeGiven
-                                      ? "Prize given ✓"
-                                      : "Prize not given yet"
-                                  }
-                                >
-                                  {isPrizeGiven ? (
-                                    <Check className="h-4 w-4 sm:h-3 sm:w-3" />
-                                  ) : (
-                                    <Clock className="h-4 w-4 sm:h-3 sm:w-3" />
-                                  )}
-                                </button>
-                                <span
-                                  className={`text-xs font-medium ${
-                                    isPrizeGiven
-                                      ? "text-green-600"
-                                      : "text-blue-600"
+                                      ? "bg-green-100 border-green-300 text-green-800 hover:bg-green-200"
+                                      : "bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200"
                                   }`}
                                 >
                                   {isPrizeGiven ? "Given" : "Pending"}
-                                </span>
+                                  <ChevronDown className="h-3 w-3" />
+                                </button>
+
+                                {dropdownOpen === winner.id && (
+                                  <div className="absolute right-0 top-full mt-1 w-24 bg-white border border-gray-200 rounded-md shadow-lg z-10 dropdown-container">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDropdownOpen(null);
+                                        if (!isPrizeGiven) {
+                                          togglePrizeGiven(winner.id);
+                                        }
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 text-green-700"
+                                    >
+                                      <Check className="h-3 w-3" />
+                                      Given
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDropdownOpen(null);
+                                        if (isPrizeGiven) {
+                                          togglePrizeGiven(winner.id);
+                                        }
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 text-amber-700"
+                                    >
+                                      <Clock className="h-3 w-3" />
+                                      Pending
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -374,171 +440,151 @@ function Winners({ currentYear }) {
       </div>
 
       {/* Game Winners Modal */}
-      {viewingGameId &&
-        (() => {
+      <Modal
+        isOpen={!!viewingGameId}
+        onClose={() => setViewingGameId(null)}
+        title="Game Winners"
+      >
+        {viewingGameId && (() => {
           const viewingGame = games.find((g) => g.id === viewingGameId);
           const gameWinners = winners[viewingGameId] || [];
           if (!viewingGame) return null;
 
           return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 sm:p-6 z-50 backdrop-blur-sm">
-              <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl min-h-[400px] max-h-[85vh] flex flex-col border border-gray-200">
-                {/* Header */}
-                <div className="px-6 py-4 border-b bg-gradient-to-r from-yellow-50 to-blue50 flex-shrink-0 rounded-t-xl">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="p-2 bg-yellow-100 rounded-lg">
-                        <Trophy className="h-5 w-5 text-yellow-600" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-lg font-bold text-gray-900 truncate">
-                          Winners - {viewingGame.name}
-                        </h3>
-                        <p className="text-sm text-yellow-600 font-medium">
-                          {gameWinners.length} winner
-                          {gameWinners.length !== 1 ? "s" : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setViewingGameId(null)}
-                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-yellow-100 rounded-lg">
+                  <Trophy className="h-5 w-5 text-yellow-600" />
                 </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto min-h-0 p-6">
-                  {gameWinners.length > 0 ? (
-                    <div className="space-y-3">
-                      {gameWinners
-                        .sort((a, b) => {
-                          const positionOrder = {
-                            "1st": 1,
-                            "2nd": 2,
-                            "3rd": 3,
-                            Participation: 4,
-                            Other: 5,
-                          };
-                          return (
-                            (positionOrder[a.position] || 5) -
-                            (positionOrder[b.position] || 5)
-                          );
-                        })
-                        .map((winner) => {
-                          const prize = getPrizeForPosition(
-                            viewingGame,
-                            winner.position
-                          );
-                          const isPrizeGiven = winner.prizeGiven || false;
-                          return (
-                            <div
-                              key={winner.id}
-                              className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-yellow-200 hover:shadow-sm transition-all"
-                            >
-                              <div className="flex items-center gap-4 flex-1">
-                                <div className="flex-shrink-0 p-2 bg-yellow-100 rounded-full">
-                                  {getPositionIcon(winner.position)}
-                                </div>
-                                <div
-                                  onClick={() => setViewingPrizeId(winner.id)}
-                                  className="cursor-pointer"
-                                >
-                                  <p className="font-semibold text-gray-900">
-                                    {winner.name}
-                                  </p>
-                                  <p className="text-sm text-gray-600">
-                                    {winner.position} Place
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <div className="text-right">
-                                  {prize ? (
-                                    <div className="flex items-center gap-2">
-                                      {prize.image && (
-                                        <img
-                                          src={prize.image}
-                                          alt=""
-                                          className="w-8 h-8 object-cover rounded border"
-                                        />
-                                      )}
-                                      <div>
-                                        <p className="font-medium text-gray-900">
-                                          {prize.item}
-                                        </p>
-                                        <p className="text-sm text-green-600">
-                                          ₹{prize.amount.toLocaleString()}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <p className="text-gray-500">
-                                      {winner.prize || "Prize not specified"}
-                                    </p>
-                                  )}
-                                </div>
-                                <div className="flex flex-col items-center gap-1">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      togglePrizeGiven(winner.id);
-                                    }}
-                                    className={`p-2 rounded-lg transition-all ${
-                                      isPrizeGiven
-                                        ? "bg-green-100 text-green-600 hover:bg-green-200"
-                                        : "bg-blue-100 text-blue-600 hover:bg-blue-200"
-                                    }`}
-                                    title={
-                                      isPrizeGiven
-                                        ? "Mark as not given"
-                                        : "Mark as given"
-                                    }
-                                  >
-                                    {isPrizeGiven ? (
-                                      <Check className="h-4 w-4" />
-                                    ) : (
-                                      <Clock className="h-4 w-4" />
-                                    )}
-                                  </button>
-                                  <span
-                                    className={`text-xs font-medium ${
-                                      isPrizeGiven
-                                        ? "text-green-600"
-                                        : "text-blue-600"
-                                    }`}
-                                  >
-                                    {isPrizeGiven ? "Given" : "Pending"}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <Trophy className="text-gray-400 h-16 w-16 mb-4 mx-auto" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        No winners yet
-                      </h3>
-                      <p className="text-gray-500">
-                        Winners will appear here once they are selected in the
-                        Games tab.
-                      </p>
-                    </div>
-                  )}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    {viewingGame.name}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {gameWinners.length} winner{gameWinners.length !== 1 ? "s" : ""}
+                  </p>
                 </div>
               </div>
+
+              {gameWinners.length > 0 ? (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {gameWinners
+                    .sort((a, b) => {
+                      const positionOrder = {
+                        "1st": 1,
+                        "2nd": 2,
+                        "3rd": 3,
+                        Participation: 4,
+                        Other: 5,
+                      };
+                      return (
+                        (positionOrder[a.position] || 5) -
+                        (positionOrder[b.position] || 5)
+                      );
+                    })
+                    .map((winner) => {
+                      const prize = getPrizeForPosition(
+                        viewingGame,
+                        winner.position
+                      );
+                      const isPrizeGiven = winner.prizeGiven || false;
+                      return (
+                        <div
+                          key={winner.id}
+                          className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-yellow-200 hover:shadow-sm transition-all"
+                        >
+                          <div className="flex items-center gap-4 flex-1">
+                            <div className="flex-shrink-0 p-2 bg-yellow-100 rounded-full">
+                              {getPositionIcon(winner.position)}
+                            </div>
+                            <div
+                              onClick={() => {
+                                setViewingGameId(null);
+                                setViewingPrizeId(winner.id);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <p className="font-semibold text-gray-900">
+                                {winner.name}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {winner.position} Place
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              {prize ? (
+                                <div className="flex items-center gap-2">
+                                  {prize.image && (
+                                    <img
+                                      src={prize.image}
+                                      alt=""
+                                      className="w-8 h-8 object-cover rounded border"
+                                    />
+                                  )}
+                                  <div>
+                                    <p className="font-medium text-gray-900">
+                                      {prize.item}
+                                    </p>
+                                    <p className="text-sm text-green-600">
+                                      ₹{prize.amount.toLocaleString()}
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-gray-500">
+                                  {winner.prize || "Prize not specified"}
+                                </p>
+                              )}
+                            </div>
+                            <select
+                              value={isPrizeGiven ? "given" : "pending"}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                const newStatus = e.target.value === "given";
+                                if (newStatus !== isPrizeGiven) {
+                                  togglePrizeGiven(winner.id);
+                                }
+                              }}
+                              className={`text-xs font-medium px-2 py-1 rounded border transition-colors ${
+                                isPrizeGiven
+                                  ? "bg-green-100 border-green-300 text-green-800"
+                                  : "bg-amber-100 border-amber-300 text-amber-800"
+                              }`}
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="given">Given</option>
+                            </select>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Trophy className="text-gray-400 h-16 w-16 mb-4 mx-auto" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    No winners yet
+                  </h3>
+                  <p className="text-gray-500">
+                    Winners will appear here once they are selected in the
+                    Games tab.
+                  </p>
+                </div>
+              )}
             </div>
           );
         })()}
+      </Modal>
 
       {/* Prize Details Modal */}
-      {viewingPrizeId &&
-        (() => {
+      <Modal
+        isOpen={!!viewingPrizeId}
+        onClose={() => setViewingPrizeId(null)}
+        title="Prize Details"
+      >
+        {viewingPrizeId && (() => {
           const winner = Object.values(winners)
             .flat()
             .find((w) => w.id === viewingPrizeId);
@@ -554,75 +600,70 @@ function Winners({ currentYear }) {
             : null;
 
           return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 sm:p-6 z-50 backdrop-blur-sm">
-              <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg border border-gray-200">
-                {/* Header */}
-                <div className="px-6 py-4 border-b bg-gradient-to-r from-green-50 to-emerald-50 rounded-t-xl">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-green-100 rounded-lg">
-                        <Award className="h-5 w-5 text-green-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-gray-900">
-                          {winner.name}
-                        </h3>
-                        <p className="text-sm text-green-600 font-medium">
-                          {winner.position} Place Winner
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setViewingPrizeId(null)}
-                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200"
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
-                  </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Award className="h-6 w-6 text-green-600" />
                 </div>
-
-                {/* Content */}
-                <div className="p-6">
-                  {prize ? (
-                    <div className="text-center">
-                      {prize.image && (
-                        <img
-                          src={prize.image}
-                          alt={prize.item}
-                          className="w-32 h-32 object-cover rounded-lg border mx-auto mb-4"
-                        />
-                      )}
-                      <h4 className="text-xl font-bold text-gray-900 mb-2">
-                        {prize.item}
-                      </h4>
-                      <p className="text-2xl font-bold text-green-600 mb-4">
-                        ₹{prize.amount.toLocaleString()}
-                      </p>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-sm text-gray-600 mb-1">Prize for</p>
-                        <p className="font-semibold text-gray-900">
-                          {winner.position} Place
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Award className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                      <h4 className="text-lg font-medium text-gray-900 mb-2">
-                        Prize Details
-                      </h4>
-                      <p className="text-gray-600">
-                        {winner.prize || "No prize details available"}
-                      </p>
-                    </div>
-                  )}
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    {winner.name}
+                  </h3>
+                  <p className="text-sm text-green-600 font-medium">
+                    {winner.position} Place Winner
+                  </p>
                 </div>
               </div>
+
+              {prize ? (
+                <div>
+                  {prize.image && (
+                    <img
+                      src={prize.image}
+                      alt={prize.item}
+                      className="w-32 h-32 object-cover rounded-lg border mx-auto mb-4"
+                    />
+                  )}
+                  <h4 className="text-xl font-bold text-gray-900 mb-2">
+                    {prize.item}
+                  </h4>
+                  <p className="text-2xl font-bold text-green-600 mb-4">
+                    ₹{prize.amount.toLocaleString()}
+                  </p>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-600 mb-1">Prize for</p>
+                    <p className="font-semibold text-gray-900">
+                      {winner.position} Place
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-4">
+                  <Award className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <h4 className="text-lg font-medium text-gray-900 mb-2">
+                    Prize Details
+                  </h4>
+                  <p className="text-gray-600">
+                    {winner.prize || "No prize details available"}
+                  </p>
+                </div>
+              )}
             </div>
           );
         })()}
+      </Modal>
 
-      {Object.keys(winners).length > 0 && (
+      {(isLoading || loading) ? (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <Skeleton className="h-6 w-6 rounded mr-3" />
+            <div className="flex-1">
+              <Skeleton className="h-5 w-40 mb-1" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+          </div>
+        </div>
+      ) : Object.keys(winners).length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-center">
             <Trophy className="text-yellow-500 mr-3 h-6 w-6" />

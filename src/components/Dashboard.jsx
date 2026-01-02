@@ -9,8 +9,9 @@ import {
   AlertTriangle,
   Lightbulb,
 } from "lucide-react";
+import Skeleton from "./Skeleton";
 
-function Dashboard({ data, currentYear }) {
+function Dashboard({ data, currentYear, isLoading = false }) {
   const { contributors = [], expenses = [], games = [], winners = {} } = data;
 
   const totalCollected = contributors.reduce(
@@ -88,26 +89,32 @@ function Dashboard({ data, currentYear }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-6 gap-4 lg:gap-6">
-        {summaryCards.map((card, index) => (
-          <div
-            key={index}
-            className={`p-5 lg:p-6 rounded-xl border ${card.color} shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:scale-105`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold opacity-80 truncate mb-2">
-                  {card.title}
-                </p>
-                <p className="text-xl lg:text-2xl xl:text-3xl font-bold truncate">
-                  {card.value}
-                </p>
-              </div>
-              <div className="flex-shrink-0 ml-3">
-                <card.icon className="h-8 w-8 lg:h-10 lg:w-10 opacity-70" />
+        {isLoading ? (
+          Array.from({ length: 6 }, (_, index) => (
+            <Skeleton key={index} className="h-24 w-full rounded-xl" />
+          ))
+        ) : (
+          summaryCards.map((card, index) => (
+            <div
+              key={index}
+              className={`p-5 lg:p-6 rounded-xl border ${card.color} shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 hover:scale-105`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold opacity-80 truncate mb-2">
+                    {card.title}
+                  </p>
+                  <p className="text-xl lg:text-2xl xl:text-3xl font-bold truncate">
+                    {card.value}
+                  </p>
+                </div>
+                <div className="flex-shrink-0 ml-3">
+                  <card.icon className="h-8 w-8 lg:h-10 lg:w-10 opacity-70" />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
@@ -117,7 +124,21 @@ function Dashboard({ data, currentYear }) {
             Recent Expenses
           </h3>
           <div className="space-y-3">
-            {expenses.length > 0 ? (
+            {isLoading ? (
+              Array.from({ length: 3 }, (_, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0"
+                >
+                  <Skeleton className="h-10 w-10 rounded-lg" />
+                  <div className="flex-1 ml-3">
+                    <Skeleton className="h-4 w-3/4 mb-1" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              ))
+            ) : expenses.length > 0 ? (
               expenses.slice(-5).map((expense, index) => (
                 <div
                   key={index}
@@ -167,7 +188,20 @@ function Dashboard({ data, currentYear }) {
             Games Overview
           </h3>
           <div className="space-y-3">
-            {games.length > 0 ? (
+            {isLoading ? (
+              Array.from({ length: 3 }, (_, index) => (
+                <div
+                  key={index}
+                  className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0"
+                >
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-3/4 mb-1" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              ))
+            ) : games.length > 0 ? (
               games.map((game, index) => (
                 <div
                   key={index}
@@ -195,7 +229,7 @@ function Dashboard({ data, currentYear }) {
         </div>
       </div>
 
-      {remainingBalance < 0 && (
+      {!isLoading && remainingBalance < 0 && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-center">
             <AlertTriangle className="text-red-500 mr-3 h-6 w-6" />
@@ -213,7 +247,7 @@ function Dashboard({ data, currentYear }) {
         </div>
       )}
 
-      {unpaidAmount > 0 && remainingBalance >= 0 && (
+      {!isLoading && unpaidAmount > 0 && remainingBalance >= 0 && (
         <div className="bg-blue50 border border-blue200 rounded-lg p-4">
           <div className="flex items-center">
             <Lightbulb className="text-blue500 mr-3 h-6 w-6" />
