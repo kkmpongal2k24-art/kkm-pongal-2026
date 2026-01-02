@@ -53,8 +53,10 @@ export const AuthProvider = ({ children }) => {
     // Note: Navigation will be handled by the component calling signOut
   }
 
-  // Determine user role
-  const userRole = user?.email === 'kkmpongal2026@gmail.com' ? 'admin' : user ? 'user' : 'guest'
+  // Determine user role: kkmpasanga2026@gmail.com = user, all other logged-in emails = admin
+  const userRole = user
+    ? (user.email === 'kkmpasanga2026@gmail.com' ? 'user' : 'admin')
+    : 'guest'
 
   // Save role to localStorage only if user is authenticated
   if (user) {
@@ -69,9 +71,9 @@ export const AuthProvider = ({ children }) => {
     signIn,
     signOut,
     isAuthenticated: !!user,
-    // Simple email-based role check: kkmpongal2026@gmail.com is admin, others are user (view-only)
-    isAdmin: user?.email === 'kkmpongal2026@gmail.com',
-    isUser: !!user && user?.email !== 'kkmpongal2026@gmail.com',
+    // Updated role check: kkmpasanga2026@gmail.com is user (view-only), all others are admin
+    isAdmin: !!user && user?.email !== 'kkmpasanga2026@gmail.com',
+    isUser: user?.email === 'kkmpasanga2026@gmail.com',
     userRole,
   }
 
