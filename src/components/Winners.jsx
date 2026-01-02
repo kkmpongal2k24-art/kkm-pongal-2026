@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Trophy,
   Medal,
@@ -10,24 +10,35 @@ import {
   Clock,
   ChevronDown,
 } from "lucide-react";
-import { yearsApi, gamesApi, winnersApi, expensesApi } from "../lib/api.js";
+import { winnersApi } from "../lib/api.js";
 import Skeleton from "./Skeleton";
 import Modal from "./Modal";
 
-function Winners({ currentYear, isLoading = false }) {
+function Winners({ data, refreshData, currentYear, isLoading = false }) {
   const [viewingGameId, setViewingGameId] = useState(null);
   const [viewingPrizeId, setViewingPrizeId] = useState(null);
-  const [games, setGames] = useState([]);
-  const [winners, setWinners] = useState({});
-  const [expenses, setExpenses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(null);
 
-  // Load data when component mounts
+  // Use data from props instead of loading separately
+  const { games = [], winners = {}, expenses = [] } = data || {};
+
+  const loadData = useCallback(async () => {
+    try {
+      // This function will trigger a refresh of data from the parent
+      if (refreshData) {
+        await refreshData();
+      }
+    } catch (err) {
+      console.error("Error loading winners data:", err);
+    }
+  }, [refreshData]);
+
+  // Only load data if not provided via props
   useEffect(() => {
-    loadData();
-  }, [currentYear]);
+    if (!data || Object.keys(data).length === 0) {
+      loadData();
+    }
+  }, [currentYear, data, loadData]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -40,83 +51,6 @@ function Winners({ currentYear, isLoading = false }) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [dropdownOpen]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      setError("");
-
-      // Get the year record first
-      const yearRecord = await yearsApi.getByYear(currentYear);
-      if (!yearRecord) {
-        setGames([]);
-        setWinners({});
-        setExpenses([]);
-        setLoading(false);
-        return;
-      }
-
-      // Load all data in parallel
-      const [gamesData, winnersData, expensesData] = await Promise.all([
-        gamesApi.getByYear(yearRecord.id),
-        winnersApi.getByYear(yearRecord.id),
-        expensesApi.getByYear(yearRecord.id)
-      ]);
-
-      // Transform games data to match expected structure
-      const transformedGames = gamesData.map(game => ({
-        id: game.id,
-        name: game.name,
-        organizer: game.organizer,
-        referenceLink: game.reference_link,
-        prizeIds: {
-          first: game.first_prize_id,
-          second: game.second_prize_id,
-          third: game.third_prize_id
-        },
-        participants: game.participants || [],
-        created: game.created_at,
-        updated: game.updated_at
-      }));
-
-      // Transform expenses data
-      const transformedExpenses = expensesData.map(expense => ({
-        id: expense.id,
-        item: expense.item,
-        amount: parseFloat(expense.amount),
-        category: expense.category,
-        date: expense.date,
-        image: expense.image,
-        created: expense.created_at
-      }));
-
-      // Group winners by game_id
-      const winnersGrouped = winnersData.reduce((acc, winner) => {
-        if (!acc[winner.game_id]) {
-          acc[winner.game_id] = [];
-        }
-        acc[winner.game_id].push({
-          id: winner.id,
-          name: winner.name,
-          position: winner.position,
-          prize: winner.prize,
-          prizeGiven: winner.prize_given || false,
-          prizeGivenDate: winner.prize_given_date,
-          gameId: winner.game_id
-        });
-        return acc;
-      }, {});
-
-      setGames(transformedGames);
-      setWinners(winnersGrouped);
-      setExpenses(transformedExpenses);
-    } catch (err) {
-      console.error("Error loading winners data:", err);
-      setError("Failed to load winners data. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Get prize for a specific position in a game
   const getPrizeForPosition = (game, position) => {
@@ -139,13 +73,11 @@ function Winners({ currentYear, isLoading = false }) {
     try {
       // Find the winner in current state
       let winnerToUpdate = null;
-      let gameId = null;
 
-      for (const [gId, gameWinners] of Object.entries(winners)) {
+      for (const gameWinners of Object.values(winners)) {
         const winner = gameWinners.find(w => w.id === winnerId);
         if (winner) {
           winnerToUpdate = winner;
-          gameId = gId;
           break;
         }
       }
@@ -160,22 +92,12 @@ function Winners({ currentYear, isLoading = false }) {
       // Update in database
       await winnersApi.togglePrizeGiven(winnerId, newPrizeGiven);
 
-      // Update local state
-      setWinners(prev => ({
-        ...prev,
-        [gameId]: prev[gameId].map(winner =>
-          winner.id === winnerId
-            ? {
-                ...winner,
-                prizeGiven: newPrizeGiven,
-                prizeGivenDate: newPrizeGiven ? new Date().toISOString() : null
-              }
-            : winner
-        )
-      }));
+      // Refresh data from parent to get updated state
+      if (refreshData) {
+        await refreshData();
+      }
     } catch (err) {
       console.error("Error updating prize status:", err);
-      setError("Failed to update prize status. Please try again.");
     }
   };
 
@@ -194,20 +116,6 @@ function Winners({ currentYear, isLoading = false }) {
     }
   };
 
-  const getPositionColor = (position) => {
-    switch (position) {
-      case "1st":
-        return "bg-yellow-50 text-yellow-800 border-yellow-200";
-      case "2nd":
-        return "bg-gray-50 text-gray-800 border-gray-200";
-      case "3rd":
-        return "bg-blue-50 text-blue-800 border-blue-200";
-      case "Participation":
-        return "bg-blue-50 text-blue-800 border-blue-200";
-      default:
-        return "bg-purple-50 text-purple-800 border-purple-200";
-    }
-  };
 
   return (
     <div className="space-y-6 lg:space-y-8">
@@ -231,7 +139,7 @@ function Winners({ currentYear, isLoading = false }) {
           Games & Winners
         </h3>
 
-        {(isLoading || loading) ? (
+        {isLoading ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {Array.from({ length: 4 }, (_, i) => (
               <div key={i} className="p-4 rounded-lg border border-gray-200">
@@ -653,7 +561,7 @@ function Winners({ currentYear, isLoading = false }) {
         })()}
       </Modal>
 
-      {(isLoading || loading) ? (
+      {isLoading ? (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-center">
             <Skeleton className="h-6 w-6 rounded mr-3" />
