@@ -53,15 +53,20 @@ export const AuthProvider = ({ children }) => {
     window.location.href = '/signin'
   }
 
+  // Save role to localStorage
+  const userRole = user?.email === 'kkmpongal2026@gmail.com' ? 'admin' : 'user'
+  localStorage.setItem('userRole', userRole)
+
   const value = {
     user,
     loading,
     signIn,
     signOut,
     isAuthenticated: !!user,
-    // Simple email-based role check: kkmpongal2026@gmail.com is user (view-only), others are admin
-    isAdmin: user?.email !== 'kkmpongal2026@gmail.com',
-    isUser: user?.email === 'kkmpongal2026@gmail.com',
+    // Simple email-based role check: kkmpongal2026@gmail.com is admin, others are user (view-only)
+    isAdmin: user?.email === 'kkmpongal2026@gmail.com',
+    isUser: user?.email !== 'kkmpongal2026@gmail.com',
+    userRole,
   }
 
   return (

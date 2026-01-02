@@ -243,6 +243,9 @@ function App() {
               </main>
             </div>
           } />
+
+          {/* Fallback for authenticated users trying to access invalid routes */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </>
       ) : (
         /* Redirect all routes to signin if not authenticated */

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { expensesApi, yearsApi } from '../lib/api'
 import { uploadToCloudinary } from '../lib/cloudinary'
+import { useAuth } from '../contexts/AuthContext'
 import ImageUpload from './ImageUpload'
 import { ShoppingBag, Plus, DollarSign, AlertTriangle, CreditCard, Trophy, Package, Filter, Eye, ArrowLeft, Calendar, Tag, Pencil, Trash2, X } from 'lucide-react'
 import Modal from './Modal'
@@ -8,6 +9,8 @@ import Skeleton from './Skeleton'
 import LoadingButton from './LoadingButton'
 
 function Expenses({ data, refreshData, currentYear, isLoading = false }) {
+  const { isAdmin } = useAuth()
+
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState({ item: '', amount: '', date: '', image: null })
@@ -332,7 +335,7 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
           </div>
         )}
 
-        {!showForm && (
+        {!showForm && isAdmin && (
           <button
             onClick={() => setShowForm(true)}
             disabled={filterCategory === 'all'}
@@ -628,22 +631,26 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
                             <Eye className="h-4 w-4" />
                             View
                           </button>
-                          <button
-                            onClick={() => handleEdit(expense)}
-                            className="text-blue-600 hover:text-blue-900 transition-colors flex items-center gap-1"
-                          >
-                            <Pencil className="h-4 w-4" />
-                            Edit
-                          </button>
-                          <LoadingButton
-                            onClick={() => handleDelete(expense)}
-                            loading={deletingIds.has(expense.id)}
-                            className="text-red-600 hover:text-red-900 transition-colors flex items-center gap-1"
-                            spinnerSize="small"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                          </LoadingButton>
+                          {isAdmin && (
+                            <>
+                              <button
+                                onClick={() => handleEdit(expense)}
+                                className="text-blue-600 hover:text-blue-900 transition-colors flex items-center gap-1"
+                              >
+                                <Pencil className="h-4 w-4" />
+                                Edit
+                              </button>
+                              <LoadingButton
+                                onClick={() => handleDelete(expense)}
+                                loading={deletingIds.has(expense.id)}
+                                className="text-red-600 hover:text-red-900 transition-colors flex items-center gap-1"
+                                spinnerSize="small"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Delete
+                              </LoadingButton>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -711,22 +718,26 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
                             <Eye className="h-3 w-3" />
                             View
                           </button>
-                          <button
-                            onClick={() => handleEdit(expense)}
-                            className="text-blue-600 hover:text-blue-900 text-sm font-medium flex items-center gap-1"
-                          >
-                            <Pencil className="h-3 w-3" />
-                            Edit
-                          </button>
-                          <LoadingButton
-                            onClick={() => handleDelete(expense)}
-                            loading={deletingIds.has(expense.id)}
-                            className="text-red-600 hover:text-red-900 text-sm font-medium flex items-center gap-1"
-                            spinnerSize="small"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                            Delete
-                          </LoadingButton>
+                          {isAdmin && (
+                            <>
+                              <button
+                                onClick={() => handleEdit(expense)}
+                                className="text-blue-600 hover:text-blue-900 text-sm font-medium flex items-center gap-1"
+                              >
+                                <Pencil className="h-3 w-3" />
+                                Edit
+                              </button>
+                              <LoadingButton
+                                onClick={() => handleDelete(expense)}
+                                loading={deletingIds.has(expense.id)}
+                                className="text-red-600 hover:text-red-900 text-sm font-medium flex items-center gap-1"
+                                spinnerSize="small"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Delete
+                              </LoadingButton>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -740,7 +751,7 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
             <ShoppingBag className="text-gray-400 h-16 w-16 mb-4 mx-auto" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No expenses yet</h3>
             <p className="text-gray-500 mb-4">Start by adding your first expense or purchase.</p>
-            {filterCategory !== 'all' && (
+            {filterCategory !== 'all' && isAdmin && (
               <button
                 onClick={() => setShowForm(true)}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
@@ -899,29 +910,31 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-                      <button
-                        onClick={() => {
-                          handleEdit(viewingExpense)
-                          setViewingExpenseId(null)
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        Edit Expense
-                      </button>
-                      <LoadingButton
-                        onClick={() => {
-                          handleDelete(viewingExpense)
-                          setViewingExpenseId(null)
-                        }}
-                        loading={deletingIds.has(viewingExpense.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete Expense
-                      </LoadingButton>
-                    </div>
+                    {isAdmin && (
+                      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                        <button
+                          onClick={() => {
+                            handleEdit(viewingExpense)
+                            setViewingExpenseId(null)
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          Edit Expense
+                        </button>
+                        <LoadingButton
+                          onClick={() => {
+                            handleDelete(viewingExpense)
+                            setViewingExpenseId(null)
+                          }}
+                          loading={deletingIds.has(viewingExpense.id)}
+                          className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete Expense
+                        </LoadingButton>
+                      </div>
+                    )}
                   </div>
 
                   {/* Right Column - Image */}

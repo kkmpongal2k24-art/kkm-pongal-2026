@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { gamesApi, yearsApi, winnersApi } from "../lib/api";
+import { useAuth } from '../contexts/AuthContext'
 import SearchableDropdown from "./SearchableDropdown";
 import LoadingButton from "./LoadingButton";
 import Skeleton from "./Skeleton";
@@ -20,6 +21,8 @@ import {
 } from "lucide-react";
 
 function Games({ data, refreshData, currentYear, isLoading = false }) {
+  const { isAdmin } = useAuth()
+
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [viewingGameId, setViewingGameId] = useState(null);
@@ -1102,7 +1105,7 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
           )}
         </div>
 
-        {!showForm && (
+        {!showForm && isAdmin && (
           <button
             onClick={() => setShowForm(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-colors whitespace-nowrap flex items-center justify-center gap-2"
@@ -1475,27 +1478,31 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                         <Eye className="h-3 w-3 lg:h-4 lg:w-4" />
                         <span className="hidden sm:inline">View</span>
                       </button>
-                      <button
-                        onClick={() => setManagingParticipants(game.id)}
-                        className="text-purple-600 hover:text-purple-900 text-xs lg:text-sm font-medium transition-colors flex items-center gap-1 bg-purple-50 px-2 py-1 rounded"
-                      >
-                        <UserPlus className="h-3 w-3 lg:h-4 lg:w-4" />
-                        <span className="hidden sm:inline">Participants</span>
-                      </button>
-                      <button
-                        onClick={() => handleEdit(game)}
-                        className="text-blue-600 hover:text-blue-900 text-xs lg:text-sm font-medium transition-colors flex items-center gap-1 bg-blue-50 px-2 py-1 rounded"
-                      >
-                        <Pencil className="h-3 w-3 lg:h-4 lg:w-4" />
-                        <span className="hidden sm:inline">Edit</span>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(game.id)}
-                        className="text-red-600 hover:text-red-900 text-xs lg:text-sm font-medium transition-colors flex items-center gap-1 bg-red-50 px-2 py-1 rounded"
-                      >
-                        <Trash2 className="h-3 w-3 lg:h-4 lg:w-4" />
-                        <span className="hidden sm:inline">Delete</span>
-                      </button>
+                      {isAdmin && (
+                        <>
+                          <button
+                            onClick={() => setManagingParticipants(game.id)}
+                            className="text-purple-600 hover:text-purple-900 text-xs lg:text-sm font-medium transition-colors flex items-center gap-1 bg-purple-50 px-2 py-1 rounded"
+                          >
+                            <UserPlus className="h-3 w-3 lg:h-4 lg:w-4" />
+                            <span className="hidden sm:inline">Participants</span>
+                          </button>
+                          <button
+                            onClick={() => handleEdit(game)}
+                            className="text-blue-600 hover:text-blue-900 text-xs lg:text-sm font-medium transition-colors flex items-center gap-1 bg-blue-50 px-2 py-1 rounded"
+                          >
+                            <Pencil className="h-3 w-3 lg:h-4 lg:w-4" />
+                            <span className="hidden sm:inline">Edit</span>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(game.id)}
+                            className="text-red-600 hover:text-red-900 text-xs lg:text-sm font-medium transition-colors flex items-center gap-1 bg-red-50 px-2 py-1 rounded"
+                          >
+                            <Trash2 className="h-3 w-3 lg:h-4 lg:w-4" />
+                            <span className="hidden sm:inline">Delete</span>
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1511,15 +1518,17 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
             <p className="text-gray-500 mb-4">
               Start by adding your first game to manage.
             </p>
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                Add First Game
-              </div>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setShowForm(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add First Game
+                </div>
+              </button>
+            )}
           </div>
         )}
       </div>
