@@ -87,7 +87,7 @@ function Winners({ data, refreshData, currentYear, isLoading = false }) {
         return;
       }
 
-      const newPrizeGiven = !winnerToUpdate.prizeGiven;
+      const newPrizeGiven = !winnerToUpdate.prize_given;
 
       // Update in database
       await winnersApi.togglePrizeGiven(winnerId, newPrizeGiven);
@@ -223,7 +223,7 @@ function Winners({ data, refreshData, currentYear, isLoading = false }) {
                           game,
                           winner.position
                         );
-                        const isPrizeGiven = winner.prizeGiven || false;
+                        const isPrizeGiven = winner.prize_given || false;
                         return (
                           <div
                             key={winner.id}
@@ -395,7 +395,7 @@ function Winners({ data, refreshData, currentYear, isLoading = false }) {
                         viewingGame,
                         winner.position
                       );
-                      const isPrizeGiven = winner.prizeGiven || false;
+                      const isPrizeGiven = winner.prize_given || false;
                       return (
                         <div
                           key={winner.id}
