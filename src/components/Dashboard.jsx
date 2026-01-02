@@ -8,8 +8,10 @@ import {
   TrendingUp,
   AlertTriangle,
   Lightbulb,
+  Download,
 } from "lucide-react";
 import Skeleton from "./Skeleton";
+import { exportToExcel } from "../utils/excelExport";
 
 function Dashboard({ data, currentYear, isLoading = false }) {
   const { contributors = [], expenses = [], games = [], winners = {} } = data;
@@ -83,8 +85,18 @@ function Dashboard({ data, currentYear, isLoading = false }) {
           </h2>
           <p className="text-gray-600 mt-1">Pongal {currentYear} Overview</p>
         </div>
-        <div className="text-sm text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
-          Last updated: {new Date().toLocaleDateString()}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => exportToExcel(data, currentYear)}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            disabled={isLoading}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export to Excel
+          </button>
+          <div className="text-sm text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
+            Last updated: {new Date().toLocaleDateString()}
+          </div>
         </div>
       </div>
 

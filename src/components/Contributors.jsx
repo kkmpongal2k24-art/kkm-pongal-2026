@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { contributorsApi, yearsApi } from '../lib/api'
+import { useAuth } from '../contexts/AuthContext'
 import { IndianRupee, Plus, CheckCircle, Clock, Pencil, Trash2 } from 'lucide-react'
 import LoadingButton from './LoadingButton'
 import Skeleton from './Skeleton'
 import Modal from './Modal'
 
 function Contributors({ data, refreshData, currentYear, isLoading = false }) {
+  const { isAdmin } = useAuth()
+
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [formData, setFormData] = useState({ name: '', amount: '', isPaid: false })
@@ -242,8 +245,8 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
         )}
       </div>
 
-      {/* Add Contributor Button */}
-      {!showForm && (
+      {/* Add Contributor Button - Admin Only */}
+      {isAdmin && !showForm && (
         <div className="flex justify-center">
           <button
             onClick={() => setShowForm(true)}
@@ -503,47 +506,69 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <LoadingButton
-                          onClick={async () => {
-                            setUpdatingPaymentIds(prev => new Set([...prev, contributor.id]))
-                            try {
-                              await contributorsApi.update(contributor.id, {
-                                is_paid: !contributor.isPaid
-                              })
-                              await refreshData()
-                            } catch (error) {
-                              console.error('Failed to update payment status:', error)
-                              alert('Failed to update payment status. Please try again.')
-                            } finally {
-                              setUpdatingPaymentIds(prev => {
-                                const newSet = new Set(prev)
-                                newSet.delete(contributor.id)
-                                return newSet
-                              })
-                            }
-                          }}
-                          loading={updatingPaymentIds.has(contributor.id)}
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                        {isAdmin ? (
+                          <LoadingButton
+                            onClick={async () => {
+                              setUpdatingPaymentIds(prev => new Set([...prev, contributor.id]))
+                              try {
+                                await contributorsApi.update(contributor.id, {
+                                  is_paid: !contributor.isPaid
+                                })
+                                await refreshData()
+                              } catch (error) {
+                                console.error('Failed to update payment status:', error)
+                                alert('Failed to update payment status. Please try again.')
+                              } finally {
+                                setUpdatingPaymentIds(prev => {
+                                  const newSet = new Set(prev)
+                                  newSet.delete(contributor.id)
+                                  return newSet
+                                })
+                              }
+                            }}
+                            loading={updatingPaymentIds.has(contributor.id)}
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                              contributor.isPaid
+                                ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                : 'bg-red-100 text-red-800 hover:bg-red-200'
+                            }`}
+                            spinnerSize="small"
+                          >
+                            <div className="flex items-center gap-1">
+                              {contributor.isPaid ? (
+                                <>
+                                  <CheckCircle className="h-4 w-4" />
+                                  Paid
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="h-4 w-4" />
+                                  Unpaid
+                                </>
+                              )}
+                            </div>
+                          </LoadingButton>
+                        ) : (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             contributor.isPaid
-                              ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                              : 'bg-red-100 text-red-800 hover:bg-red-200'
-                          }`}
-                          spinnerSize="small"
-                        >
-                          <div className="flex items-center gap-1">
-                            {contributor.isPaid ? (
-                              <>
-                                <CheckCircle className="h-4 w-4" />
-                                Paid
-                              </>
-                            ) : (
-                              <>
-                                <Clock className="h-4 w-4" />
-                                Unpaid
-                              </>
-                            )}
-                          </div>
-                        </LoadingButton>
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            <div className="flex items-center gap-1">
+                              {contributor.isPaid ? (
+                                <>
+                                  <CheckCircle className="h-4 w-4" />
+                                  Paid
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="h-4 w-4" />
+                                  Unpaid
+                                </>
+                              )}
+                            </div>
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">
@@ -551,25 +576,27 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleEdit(contributor)}
-                            disabled={deletingIds.has(contributor.id)}
-                            className="text-blue-600 hover:text-blue-900 disabled:text-blue-400 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-                          >
-                            <Pencil className="h-4 w-4" />
-                            Edit
-                          </button>
-                          <LoadingButton
-                            onClick={() => handleDelete(contributor)}
-                            loading={deletingIds.has(contributor.id)}
-                            className="text-red-600 hover:text-red-900 transition-colors flex items-center gap-1"
-                            spinnerSize="small"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                          </LoadingButton>
-                        </div>
+                        {isAdmin && (
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleEdit(contributor)}
+                              disabled={deletingIds.has(contributor.id)}
+                              className="text-blue-600 hover:text-blue-900 disabled:text-blue-400 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                            >
+                              <Pencil className="h-4 w-4" />
+                              Edit
+                            </button>
+                            <LoadingButton
+                              onClick={() => handleDelete(contributor)}
+                              loading={deletingIds.has(contributor.id)}
+                              className="text-red-600 hover:text-red-900 transition-colors flex items-center gap-1"
+                              spinnerSize="small"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete
+                            </LoadingButton>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -600,72 +627,96 @@ function Contributors({ data, refreshData, currentYear, isLoading = false }) {
                           ₹{contributor.amount.toLocaleString()}
                         </div>
                         <div className="flex items-center space-x-2 mt-1">
-                          <LoadingButton
-                            onClick={async () => {
-                              setUpdatingPaymentIds(prev => new Set([...prev, contributor.id]))
-                              try {
-                                await contributorsApi.update(contributor.id, {
-                                  is_paid: !contributor.isPaid
-                                })
-                                await refreshData()
-                              } catch (error) {
-                                console.error('Failed to update payment status:', error)
-                                alert('Failed to update payment status. Please try again.')
-                              } finally {
-                                setUpdatingPaymentIds(prev => {
-                                  const newSet = new Set(prev)
-                                  newSet.delete(contributor.id)
-                                  return newSet
-                                })
-                              }
-                            }}
-                            loading={updatingPaymentIds.has(contributor.id)}
-                            className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors ${
+                          {isAdmin ? (
+                            <LoadingButton
+                              onClick={async () => {
+                                setUpdatingPaymentIds(prev => new Set([...prev, contributor.id]))
+                                try {
+                                  await contributorsApi.update(contributor.id, {
+                                    is_paid: !contributor.isPaid
+                                  })
+                                  await refreshData()
+                                } catch (error) {
+                                  console.error('Failed to update payment status:', error)
+                                  alert('Failed to update payment status. Please try again.')
+                                } finally {
+                                  setUpdatingPaymentIds(prev => {
+                                    const newSet = new Set(prev)
+                                    newSet.delete(contributor.id)
+                                    return newSet
+                                  })
+                                }
+                              }}
+                              loading={updatingPaymentIds.has(contributor.id)}
+                              className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                contributor.isPaid
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                              spinnerSize="small"
+                            >
+                              <div className="flex items-center gap-1">
+                              {contributor.isPaid ? (
+                                <>
+                                  <CheckCircle className="h-4 w-4" />
+                                  Paid
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="h-4 w-4" />
+                                  Unpaid
+                                </>
+                              )}
+                            </div>
+                            </LoadingButton>
+                          ) : (
+                            <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
                               contributor.isPaid
                                 ? 'bg-green-100 text-green-800'
                                 : 'bg-red-100 text-red-800'
-                            }`}
-                            spinnerSize="small"
-                          >
-                            <div className="flex items-center gap-1">
-                            {contributor.isPaid ? (
-                              <>
-                                <CheckCircle className="h-4 w-4" />
-                                Paid
-                              </>
-                            ) : (
-                              <>
-                                <Clock className="h-4 w-4" />
-                                Unpaid
-                              </>
-                            )}
-                          </div>
-                          </LoadingButton>
+                            }`}>
+                              <div className="flex items-center gap-1">
+                                {contributor.isPaid ? (
+                                  <>
+                                    <CheckCircle className="h-4 w-4" />
+                                    Paid
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clock className="h-4 w-4" />
+                                    Unpaid
+                                  </>
+                                )}
+                              </div>
+                            </span>
+                          )}
                           <span className="text-xs text-gray-500">
                             {contributor.date ? new Date(contributor.date).toLocaleDateString() : 'No date'}
                           </span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col space-y-2 ml-4">
-                      <button
-                        onClick={() => handleEdit(contributor)}
-                        disabled={deletingIds.has(contributor.id)}
-                        className="text-blue-600 hover:text-blue-900 disabled:text-blue-400 disabled:cursor-not-allowed text-sm font-medium flex items-center gap-1"
-                      >
-                        <Pencil className="h-3 w-3" />
-                        Edit
-                      </button>
-                      <LoadingButton
-                        onClick={() => handleDelete(contributor)}
-                        loading={deletingIds.has(contributor.id)}
-                        className="text-red-600 hover:text-red-900 text-sm font-medium flex items-center gap-1"
-                        spinnerSize="small"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        Delete
-                      </LoadingButton>
-                    </div>
+                    {isAdmin && (
+                      <div className="flex flex-col space-y-2 ml-4">
+                        <button
+                          onClick={() => handleEdit(contributor)}
+                          disabled={deletingIds.has(contributor.id)}
+                          className="text-blue-600 hover:text-blue-900 disabled:text-blue-400 disabled:cursor-not-allowed text-sm font-medium flex items-center gap-1"
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Edit
+                        </button>
+                        <LoadingButton
+                          onClick={() => handleDelete(contributor)}
+                          loading={deletingIds.has(contributor.id)}
+                          className="text-red-600 hover:text-red-900 text-sm font-medium flex items-center gap-1"
+                          spinnerSize="small"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Delete
+                        </LoadingButton>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

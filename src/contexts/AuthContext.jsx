@@ -45,6 +45,12 @@ export const AuthProvider = ({ children }) => {
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
+
+    // Clear all local storage data
+    localStorage.clear()
+
+    // Redirect to signin page
+    window.location.href = '/signin'
   }
 
   const value = {
@@ -53,6 +59,9 @@ export const AuthProvider = ({ children }) => {
     signIn,
     signOut,
     isAuthenticated: !!user,
+    // Simple email-based role check: kkmpongal2026@gmail.com is user (view-only), others are admin
+    isAdmin: user?.email !== 'kkmpongal2026@gmail.com',
+    isUser: user?.email === 'kkmpongal2026@gmail.com',
   }
 
   return (

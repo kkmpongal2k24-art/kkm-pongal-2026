@@ -130,6 +130,7 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
   };
 
   const handleEdit = (game) => {
+    setViewingGameId(null); // Close the viewing modal when editing
     setFormData({
       name: game.name,
       organizer: game.organizer,

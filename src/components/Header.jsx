@@ -43,14 +43,21 @@ function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
   };
 
   return (
-    <header className="bg-blue-600 text-white shadow-lg">
+    <header className="bg-blue-600 text-white shadow-lg relative">
+      <button
+        onClick={signOut}
+        className="absolute top-24 right-4 bg-red-500 hover:bg-red-400 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center z-10"
+        title="Logout"
+      >
+        <LogOut className="h-4 w-4" />
+      </button>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 lg:gap-8">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-1">
               <PartyPopper className="h-8 w-8 sm:h-10 sm:w-10 text-blue-200" />
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold truncate">
-                KKM Pongal Games Manager
+                2026
               </h1>
             </div>
             <p className="text-blue-100 text-base sm:text-lg">
