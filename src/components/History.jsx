@@ -5,18 +5,17 @@ import Skeleton from "./Skeleton";
 import {
   History as HistoryIcon,
   User,
-  Plus,
-  Edit,
-  Trash2,
   Calendar,
   Clock,
   Eye,
   Filter,
   RefreshCw,
+  Activity,
+  ChevronRight,
 } from "lucide-react";
 
 function History({ currentYear, isLoading: parentLoading = false }) {
-  const { isAdmin, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [historyData, setHistoryData] = useState([]);
   const [filteredHistory, setFilteredHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,20 +90,6 @@ function History({ currentYear, isLoading: parentLoading = false }) {
     await loadHistory();
   };
 
-  // Get icon for action type
-  const getActionIcon = (action) => {
-    switch (action) {
-      case "create":
-        return <Plus className="h-4 w-4 text-green-600" />;
-      case "update":
-        return <Edit className="h-4 w-4 text-blue-600" />;
-      case "delete":
-        return <Trash2 className="h-4 w-4 text-red-600" />;
-      default:
-        return <HistoryIcon className="h-4 w-4 text-gray-600" />;
-    }
-  };
-
   // Get color for action type
   const getActionColor = (action) => {
     switch (action) {
@@ -135,6 +120,66 @@ function History({ currentYear, isLoading: parentLoading = false }) {
     if (diffInDays < 7) return `${diffInDays} days ago`;
 
     return date.toLocaleDateString();
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = (email) => {
+    if (!email) return "U";
+    const parts = email.split("@")[0].split(/[._-]/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].substring(0, 2).toUpperCase();
+  };
+
+  // Group activities by time periods
+  const groupActivitiesByTime = (activities) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const weekAgo = new Date(today);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const groups = {
+      today: [],
+      yesterday: [],
+      thisWeek: [],
+      earlier: []
+    };
+
+    activities.forEach(activity => {
+      const activityDate = new Date(activity.created_at);
+      const activityDay = new Date(activityDate.getFullYear(), activityDate.getMonth(), activityDate.getDate());
+
+      if (activityDay.getTime() === today.getTime()) {
+        groups.today.push(activity);
+      } else if (activityDay.getTime() === yesterday.getTime()) {
+        groups.yesterday.push(activity);
+      } else if (activityDay >= weekAgo) {
+        groups.thisWeek.push(activity);
+      } else {
+        groups.earlier.push(activity);
+      }
+    });
+
+    return groups;
+  };
+
+  // Get group label and icon
+  const getGroupInfo = (groupKey) => {
+    switch (groupKey) {
+      case "today":
+        return { label: "Today", icon: Activity };
+      case "yesterday":
+        return { label: "Yesterday", icon: Clock };
+      case "thisWeek":
+        return { label: "This Week", icon: Calendar };
+      case "earlier":
+        return { label: "Earlier", icon: HistoryIcon };
+      default:
+        return { label: "Unknown", icon: HistoryIcon };
+    }
   };
 
   // Redirect if not authenticated
@@ -170,7 +215,7 @@ function History({ currentYear, isLoading: parentLoading = false }) {
 
         <button
           onClick={refreshHistory}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-fit"
         >
           <RefreshCw className="h-4 w-4" />
           Refresh
@@ -234,9 +279,9 @@ function History({ currentYear, isLoading: parentLoading = false }) {
       </div>
 
       {/* History Timeline */}
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+      <div className="space-y-6">
         {error && (
-          <div className="p-6 text-center">
+          <div className="bg-white rounded-lg shadow-sm border p-6 text-center">
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
               <h3 className="font-bold">Error</h3>
               <p>{error}</p>
@@ -251,19 +296,30 @@ function History({ currentYear, isLoading: parentLoading = false }) {
         )}
 
         {isLoading || parentLoading ? (
-          <div className="p-6 space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-start gap-4">
-                <Skeleton className="h-8 w-8 rounded-full" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-1/2" />
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="space-y-6">
+              {[...Array(3)].map((_, groupIndex) => (
+                <div key={groupIndex} className="space-y-3">
+                  <Skeleton className="h-6 w-32" />
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="bg-white rounded-lg border p-4 shadow-sm">
+                        <div className="flex items-start gap-4">
+                          <Skeleton className="h-10 w-10 rounded-full" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         ) : filteredHistory.length === 0 ? (
-          <div className="p-12 text-center">
+          <div className="bg-white rounded-lg shadow-sm border p-12 text-center">
             <HistoryIcon className="text-gray-400 h-16 w-16 mb-4 mx-auto" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               No Activity Yet
@@ -275,43 +331,89 @@ function History({ currentYear, isLoading: parentLoading = false }) {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
-            {filteredHistory.map((activity, index) => (
-              <div key={activity.id || index} className="p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex items-start gap-4">
-                  {/* Action Icon */}
-                  <div className={`p-2 rounded-full border ${getActionColor(activity.action)}`}>
-                    {getActionIcon(activity.action)}
+          <div className="space-y-6">
+            {Object.entries(groupActivitiesByTime(filteredHistory)).map(([groupKey, activities]) => {
+              if (activities.length === 0) return null;
+
+              const { label, icon: GroupIcon } = getGroupInfo(groupKey);
+
+              return (
+                <div key={groupKey} className="space-y-3">
+                  {/* Group Header */}
+                  <div className="flex items-center gap-2">
+                    <GroupIcon className="h-5 w-5 text-gray-600" />
+                    <h3 className="text-lg font-semibold text-gray-800">{label}</h3>
+                    <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                      {activities.length}
+                    </span>
                   </div>
 
-                  {/* Activity Details */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm text-gray-900 leading-relaxed">
-                          {activity.description}
-                        </p>
+                  {/* Group Activities */}
+                  <div className="space-y-3">
+                    {activities.map((activity, index) => (
+                      <div
+                        key={activity.id || index}
+                        className="bg-white rounded-lg border shadow-sm hover:shadow-md transition-all duration-200 transform hover:-translate-y-0.5"
+                      >
+                        <div className="p-5">
+                          <div className="flex items-start gap-4">
+                            {/* User Avatar */}
+                            <div className="flex-shrink-0">
+                              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                                {getUserInitials(activity.user_email)}
+                              </div>
+                            </div>
 
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {activity.user_email}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatRelativeTime(activity.created_at)}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {new Date(activity.created_at).toLocaleDateString()}
+                            {/* Activity Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between">
+                                <div className="min-w-0 flex-1">
+                                  {/* Action Badge and Description */}
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getActionColor(activity.action)}`}>
+                                      <span className="capitalize">{activity.action}d</span>
+                                    </div>
+                                    <span className="text-xs text-gray-500">
+                                      {activity.entity_type}
+                                    </span>
+                                  </div>
+
+                                  {/* Description */}
+                                  <p className="text-gray-900 leading-relaxed mb-3">
+                                    {activity.description}
+                                  </p>
+
+                                  {/* Metadata */}
+                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 text-xs text-gray-500">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <User className="h-3.5 w-3.5 flex-shrink-0" />
+                                      <span className="truncate">{activity.user_email}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                                      <span className="whitespace-nowrap">{formatRelativeTime(activity.created_at)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+                                      <span className="whitespace-nowrap">{new Date(activity.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Action Arrow */}
+                                <div className="flex-shrink-0 ml-4">
+                                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
