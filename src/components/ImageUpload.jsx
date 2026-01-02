@@ -2,6 +2,10 @@ import { useState, useRef } from "react";
 import { Camera, X } from "lucide-react";
 
 function ImageUpload({ image, onImageChange, label = "Prize Image" }) {
+  // image can now be either:
+  // - null (no image)
+  // - { file: File, preview: string } (new image to upload)
+  // - string (existing URL from database)
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -42,7 +46,11 @@ function ImageUpload({ image, onImageChange, label = "Prize Image" }) {
 
       const reader = new FileReader();
       reader.onload = (e) => {
-        onImageChange(e.target.result);
+        // Pass both the file (for upload) and preview URL
+        onImageChange({
+          file: file,
+          preview: e.target.result
+        });
       };
       reader.readAsDataURL(file);
     } else {
@@ -67,7 +75,7 @@ function ImageUpload({ image, onImageChange, label = "Prize Image" }) {
         <div className="relative">
           <div className="relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200">
             <img
-              src={image}
+              src={typeof image === 'string' ? image : image.preview}
               alt="Prize preview"
               className="w-full h-full object-cover"
             />

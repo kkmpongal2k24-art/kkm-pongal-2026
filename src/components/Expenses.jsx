@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { expensesApi, yearsApi } from '../lib/api'
+import { uploadToCloudinary } from '../lib/cloudinary'
 import ImageUpload from './ImageUpload'
 import { ShoppingBag, Plus, DollarSign, AlertTriangle, CreditCard, Trophy, Package, Filter, Eye, ArrowLeft, Calendar, Tag, Pencil, Trash2, X } from 'lucide-react'
 import Modal from './Modal'
@@ -69,13 +70,41 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
       // Auto-set category based on current filter (except for 'all')
       const category = filterCategory === 'all' ? 'Prize' : filterCategory
 
+      let imageUrl = null
+
+      // Handle image upload to Cloudinary if there's a new image
+      if (formData.image && typeof formData.image === 'object' && formData.image.file) {
+        // Temporarily bypass configuration check for debugging
+        console.log('Attempting image upload...')
+        console.log('Cloudinary config:', {
+          cloudName: import.meta.env.VITE_CLOUDINARY_CLOUD_NAME,
+          apiKey: import.meta.env.VITE_CLOUDINARY_API_KEY,
+          apiSecret: import.meta.env.CLOUDINARY_API_SECRET ? '***' : 'missing'
+        })
+
+        try {
+          imageUrl = await uploadToCloudinary(formData.image.file, {
+            folder: 'pongal-expenses'
+          })
+          console.log('Upload successful, URL:', imageUrl)
+        } catch (uploadError) {
+          console.error('Image upload failed:', uploadError)
+          alert('Failed to upload image. Please try again.')
+          return
+        }
+      } else if (typeof formData.image === 'string') {
+        // Existing image URL (when editing)
+        imageUrl = formData.image
+      }
+      // If formData.image is null, imageUrl remains null
+
       if (editingId !== null) {
         // Update existing expense
         await expensesApi.update(editingId, {
           item: formData.item.trim(),
           amount: parseFloat(formData.amount),
           date: formData.date || new Date().toISOString().split('T')[0],
-          image: formData.image,
+          image: imageUrl,
           category: category
         })
       } else {
@@ -85,7 +114,7 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
           item: formData.item.trim(),
           amount: parseFloat(formData.amount),
           date: formData.date || new Date().toISOString().split('T')[0],
-          image: formData.image,
+          image: imageUrl,
           category: category
         })
       }

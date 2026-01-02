@@ -52,7 +52,7 @@ function Navigation() {
   return (
     <nav className="bg-white shadow-md border-b sticky top-0 z-10">
       <div className="container mx-auto  px-2 sm:px-6 lg:px-8">
-        <div className="flex justify-center lg:justify-start space-x-1 overflow-x-auto scrollbar-hide">
+        <div className="flex justify-start space-x-1 overflow-x-auto scrollbar-hide">
           {navItems.map((item) => (
             <Link
               key={item.id}
