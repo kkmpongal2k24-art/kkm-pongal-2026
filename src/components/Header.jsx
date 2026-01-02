@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { PartyPopper, Plus, Check, X, ChevronDown } from "lucide-react";
+import { PartyPopper, Plus, Check, X, ChevronDown, LogOut } from "lucide-react";
 import Modal from "./Modal";
 import { yearsApi } from "../lib/api";
+import { useAuth } from "../contexts/AuthContext";
 
 function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
+  const { signOut } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [showYearDropdown, setShowYearDropdown] = useState(false);
   const [newYear, setNewYear] = useState("");
@@ -55,8 +57,6 @@ function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
               Event Fund & Games Management
             </p>
           </div>
-
-
 
           {/* for for 2027 enable */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
@@ -110,8 +110,6 @@ function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
               Add Year
             </button> */}
           </div>
-
-
         </div>
       </div>
 

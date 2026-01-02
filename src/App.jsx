@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route, useParams } from 'react-router-dom'
+import { Routes, Route, useParams, Navigate } from 'react-router-dom'
+import { useAuth } from './contexts/AuthContext'
 import Header from './components/Header'
 import Navigation from './components/Navigation'
 import Dashboard from './components/Dashboard'
@@ -7,11 +8,13 @@ import Contributors from './components/Contributors'
 import Expenses from './components/Expenses'
 import Games from './components/Games'
 import Winners from './components/Winners'
+import SignIn from './components/Auth/SignIn'
 import { getYearData, yearsApi } from './lib/api'
 import './App.css'
 
 function App() {
   const { year } = useParams()
+  const { isAuthenticated, loading: authLoading } = useAuth()
   const [currentYear, setCurrentYear] = useState(year || '2026')
   const [data, setData] = useState({})
   const [availableYears, setAvailableYears] = useState([])
@@ -100,51 +103,152 @@ function App() {
 
   const yearData = data[currentYear] || { contributors: [], expenses: [], games: [], winners: {} }
 
-
-
-  if (error) {
+  // Show loading spinner while checking authentication
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <h3 className="font-bold">Error</h3>
-            <p>{error}</p>
-          </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-          >
-            Retry
-          </button>
-        </div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header
-        currentYear={currentYear}
-        setCurrentYear={setCurrentYear}
-        data={data}
-        availableYears={availableYears}
-        saveData={saveData}
-        refreshData={refreshData}
-      />
-      <Navigation />
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-h-screen">
-        <div className="max-w-7xl mx-auto w-full">
-          <Routes>
-            <Route path="/" element={<Dashboard data={yearData} currentYear={currentYear} isLoading={isLoading} />} />
-            <Route path="/dashboard" element={<Dashboard data={yearData} currentYear={currentYear} isLoading={isLoading} />} />
-            <Route path="/contributors" element={<Contributors data={yearData} refreshData={refreshData} currentYear={currentYear} isLoading={isLoading} />} />
-            <Route path="/expenses" element={<Expenses data={yearData} refreshData={refreshData} currentYear={currentYear} isLoading={isLoading} />} />
-            <Route path="/games" element={<Games data={yearData} refreshData={refreshData} currentYear={currentYear} isLoading={isLoading} />} />
-            <Route path="/winners" element={<Winners data={yearData} refreshData={refreshData} currentYear={currentYear} isLoading={isLoading} />} />
-          </Routes>
-        </div>
-      </main>
-    </div>
+    <Routes>
+      {/* Sign-in route */}
+      <Route path="/signin" element={<SignIn />} />
+
+      {/* Protected routes - redirect to signin if not authenticated */}
+      {isAuthenticated ? (
+        <>
+          <Route path="/" element={
+            <div className="min-h-screen bg-gray-50">
+              <Header
+                currentYear={currentYear}
+                setCurrentYear={setCurrentYear}
+                data={data}
+                availableYears={availableYears}
+                saveData={saveData}
+                refreshData={refreshData}
+              />
+              <Navigation />
+              <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-h-screen">
+                <div className="max-w-7xl mx-auto w-full">
+                  {error ? (
+                    <div className="text-center">
+                      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                        <h3 className="font-bold">Error</h3>
+                        <p>{error}</p>
+                      </div>
+                      <button
+                        onClick={() => window.location.reload()}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : (
+                    <Dashboard data={yearData} currentYear={currentYear} isLoading={isLoading} />
+                  )}
+                </div>
+              </main>
+            </div>
+          } />
+          <Route path="/dashboard" element={
+            <div className="min-h-screen bg-gray-50">
+              <Header
+                currentYear={currentYear}
+                setCurrentYear={setCurrentYear}
+                data={data}
+                availableYears={availableYears}
+                saveData={saveData}
+                refreshData={refreshData}
+              />
+              <Navigation />
+              <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-h-screen">
+                <div className="max-w-7xl mx-auto w-full">
+                  <Dashboard data={yearData} currentYear={currentYear} isLoading={isLoading} />
+                </div>
+              </main>
+            </div>
+          } />
+          <Route path="/contributors" element={
+            <div className="min-h-screen bg-gray-50">
+              <Header
+                currentYear={currentYear}
+                setCurrentYear={setCurrentYear}
+                data={data}
+                availableYears={availableYears}
+                saveData={saveData}
+                refreshData={refreshData}
+              />
+              <Navigation />
+              <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-h-screen">
+                <div className="max-w-7xl mx-auto w-full">
+                  <Contributors data={yearData} refreshData={refreshData} currentYear={currentYear} isLoading={isLoading} />
+                </div>
+              </main>
+            </div>
+          } />
+          <Route path="/expenses" element={
+            <div className="min-h-screen bg-gray-50">
+              <Header
+                currentYear={currentYear}
+                setCurrentYear={setCurrentYear}
+                data={data}
+                availableYears={availableYears}
+                saveData={saveData}
+                refreshData={refreshData}
+              />
+              <Navigation />
+              <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-h-screen">
+                <div className="max-w-7xl mx-auto w-full">
+                  <Expenses data={yearData} refreshData={refreshData} currentYear={currentYear} isLoading={isLoading} />
+                </div>
+              </main>
+            </div>
+          } />
+          <Route path="/games" element={
+            <div className="min-h-screen bg-gray-50">
+              <Header
+                currentYear={currentYear}
+                setCurrentYear={setCurrentYear}
+                data={data}
+                availableYears={availableYears}
+                saveData={saveData}
+                refreshData={refreshData}
+              />
+              <Navigation />
+              <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-h-screen">
+                <div className="max-w-7xl mx-auto w-full">
+                  <Games data={yearData} refreshData={refreshData} currentYear={currentYear} isLoading={isLoading} />
+                </div>
+              </main>
+            </div>
+          } />
+          <Route path="/winners" element={
+            <div className="min-h-screen bg-gray-50">
+              <Header
+                currentYear={currentYear}
+                setCurrentYear={setCurrentYear}
+                data={data}
+                availableYears={availableYears}
+                saveData={saveData}
+                refreshData={refreshData}
+              />
+              <Navigation />
+              <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-h-screen">
+                <div className="max-w-7xl mx-auto w-full">
+                  <Winners data={yearData} refreshData={refreshData} currentYear={currentYear} isLoading={isLoading} />
+                </div>
+              </main>
+            </div>
+          } />
+        </>
+      ) : (
+        /* Redirect all routes to signin if not authenticated */
+        <Route path="*" element={<Navigate to="/signin" replace />} />
+      )}
+    </Routes>
   )
 }
 

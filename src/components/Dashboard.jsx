@@ -121,64 +121,66 @@ function Dashboard({ data, currentYear, isLoading = false }) {
         <div className="bg-white rounded-xl shadow-sm border p-4 sm:p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
             <TrendingUp className="mr-2 h-5 w-5" />
-            Recent Expenses
+            Recent Expenses ({expenses.length})
           </h3>
-          <div className="space-y-3">
-            {isLoading ? (
-              Array.from({ length: 3 }, (_, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0"
-                >
-                  <Skeleton className="h-10 w-10 rounded-lg" />
-                  <div className="flex-1 ml-3">
-                    <Skeleton className="h-4 w-3/4 mb-1" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
-                  <Skeleton className="h-4 w-16" />
-                </div>
-              ))
-            ) : expenses.length > 0 ? (
-              expenses.slice(-5).map((expense, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0"
-                >
-                  <div className="flex items-center flex-1">
-                    <div className="flex-shrink-0 h-10 w-10 rounded-lg overflow-hidden bg-gray-100 border mr-3">
-                      {expense.image ? (
-                        <img
-                          src={expense.image}
-                          alt={expense.item}
-                          className="h-10 w-10 object-cover"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 flex items-center justify-center text-gray-400 bg-gray-100 rounded">
-                          <ShoppingBag className="h-5 w-5" />
-                        </div>
-                      )}
+          <div className="max-h-80 overflow-y-auto">
+            <div className="space-y-3">
+              {isLoading ? (
+                Array.from({ length: 5 }, (_, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0"
+                  >
+                    <Skeleton className="h-10 w-10 rounded-lg" />
+                    <div className="flex-1 ml-3">
+                      <Skeleton className="h-4 w-3/4 mb-1" />
+                      <Skeleton className="h-3 w-1/2" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-800 truncate">
-                        {expense.item}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {expense.date
-                          ? new Date(expense.date).toLocaleDateString()
-                          : "No date"}
-                      </p>
-                    </div>
+                    <Skeleton className="h-4 w-16" />
                   </div>
-                  <span className="font-semibold text-red-600 ml-4">
-                    ₹{expense.amount.toLocaleString()}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center py-4">
-                No expenses recorded yet
-              </p>
-            )}
+                ))
+              ) : expenses.length > 0 ? (
+                expenses.map((expense, index) => (
+                  <div
+                    key={expense.id || index}
+                    className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0"
+                  >
+                    <div className="flex items-center flex-1">
+                      <div className="flex-shrink-0 h-10 w-10 rounded-lg overflow-hidden bg-gray-100 border mr-3">
+                        {expense.image ? (
+                          <img
+                            src={expense.image}
+                            alt={expense.item}
+                            className="h-10 w-10 object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 flex items-center justify-center text-gray-400 bg-gray-100 rounded">
+                            <ShoppingBag className="h-5 w-5" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-gray-800 truncate">
+                          {expense.item}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {expense.date
+                            ? new Date(expense.date).toLocaleDateString()
+                            : "No date"}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="font-semibold text-red-600 ml-4">
+                      ₹{expense.amount.toLocaleString()}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">
+                  No expenses recorded yet
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -187,44 +189,46 @@ function Dashboard({ data, currentYear, isLoading = false }) {
             <Gamepad2 className="mr-2 h-5 w-5" />
             Games Overview
           </h3>
-          <div className="space-y-3">
-            {isLoading ? (
-              Array.from({ length: 3 }, (_, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0"
-                >
-                  <div className="flex-1">
-                    <Skeleton className="h-4 w-3/4 mb-1" />
-                    <Skeleton className="h-3 w-1/2" />
+          <div className="max-h-80 overflow-y-auto">
+            <div className="space-y-3">
+              {isLoading ? (
+                Array.from({ length: 5 }, (_, index) => (
+                  <div
+                    key={index}
+                    className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0"
+                  >
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-3/4 mb-1" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                    <Skeleton className="h-3 w-16" />
                   </div>
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              ))
-            ) : games.length > 0 ? (
-              games.map((game, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0"
-                >
-                  <div>
-                    <p className="font-medium text-gray-800">{game.name}</p>
-                    <p className="text-sm text-gray-500">
-                      Organizer: {game.organizer}
-                    </p>
+                ))
+              ) : games.length > 0 ? (
+                games.map((game, index) => (
+                  <div
+                    key={game.id || index}
+                    className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-800">{game.name}</p>
+                      <p className="text-sm text-gray-500">
+                        Organizer: {game.organizer}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">
+                        {winners[game.id] ? winners[game.id].length : 0} winners
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">
-                      {winners[game.id] ? winners[game.id].length : 0} winners
-                    </p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center py-4">
-                No games created yet
-              </p>
-            )}
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">
+                  No games created yet
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>

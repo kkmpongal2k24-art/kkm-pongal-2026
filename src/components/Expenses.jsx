@@ -540,6 +540,9 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      S.No
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Item
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -557,8 +560,13 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredExpenses.map((expense) => (
+                  {filteredExpenses.map((expense, index) => (
                     <tr key={expense.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {index + 1}
+                        </div>
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-12 w-12 rounded-lg overflow-hidden bg-gray-100 border">
@@ -646,7 +654,7 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
 
             {/* Mobile Card View */}
             <div className="md:hidden divide-y divide-gray-200">
-              {filteredExpenses.map((expense) => (
+              {filteredExpenses.map((expense, index) => (
                 <div key={expense.id} className="p-4 hover:bg-gray-50 transition-colors">
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0">
@@ -667,9 +675,14 @@ function Expenses({ data, refreshData, currentYear, isLoading = false }) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="text-sm font-medium text-gray-900 truncate">
-                            {expense.item}
-                          </h3>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="bg-blue-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0">
+                              {index + 1}
+                            </span>
+                            <h3 className="text-sm font-medium text-gray-900 truncate">
+                              {expense.item}
+                            </h3>
+                          </div>
                           <div className="flex items-center mt-1">
                             {expense.category === 'Other' ? (
                               <div className="flex items-center text-xs">
