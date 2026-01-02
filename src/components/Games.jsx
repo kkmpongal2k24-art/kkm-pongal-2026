@@ -314,22 +314,24 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
             </div>
 
             {/* Action Buttons - Mobile Stack */}
-            <div className="flex flex-col sm:flex-row gap-2 mt-3">
-              <button
-                onClick={() => setManagingParticipants(viewingGame.id)}
-                className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-              >
-                <UserPlus className="h-4 w-4" />
-                Manage Participants
-              </button>
-              <button
-                onClick={() => handleEdit(viewingGame)}
-                className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-              >
-                <Pencil className="h-4 w-4" />
-                Edit Game
-              </button>
-            </div>
+            {isAdmin && (
+              <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                <button
+                  onClick={() => setManagingParticipants(viewingGame.id)}
+                  className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Manage Participants
+                </button>
+                <button
+                  onClick={() => handleEdit(viewingGame)}
+                  className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Edit Game
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Scrollable Modal Body */}
@@ -455,13 +457,15 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                       0}
                     )
                   </h3>
-                  <button
-                    onClick={() => setManagingParticipants(viewingGame.id)}
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
-                  >
-                    <UserPlus className="h-3 w-3" />
-                    Manage
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setManagingParticipants(viewingGame.id)}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                    >
+                      <UserPlus className="h-3 w-3" />
+                      Manage
+                    </button>
+                  )}
                 </div>
                 {viewingGame.participants &&
                 viewingGame.participants.length > 0 ? (
@@ -486,13 +490,15 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                     <p className="text-gray-600 mb-2 text-sm">
                       No participants added yet
                     </p>
-                    <button
-                      onClick={() => setManagingParticipants(viewingGame.id)}
-                      className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1 mx-auto"
-                    >
-                      <UserPlus className="h-3 w-3" />
-                      Add Participants
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => setManagingParticipants(viewingGame.id)}
+                        className="text-blue-600 hover:text-blue-800 font-medium text-sm flex items-center gap-1 mx-auto"
+                      >
+                        <UserPlus className="h-3 w-3" />
+                        Add Participants
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -600,20 +606,24 @@ function Games({ data, refreshData, currentYear, isLoading = false }) {
                     </p>
                     {viewingGame.participants &&
                     viewingGame.participants.length > 0 ? (
-                      <button
-                        onClick={() => {
-                          setViewingGameId(null);
-                          setSelectingWinners(viewingGame.id);
-                        }}
-                        className="text-green-600 hover:text-green-800 font-medium flex items-center gap-1"
-                      >
-                        <Trophy className="h-4 w-4" />
-                        Select Winners
-                      </button>
+                      isAdmin && (
+                        <button
+                          onClick={() => {
+                            setViewingGameId(null);
+                            setSelectingWinners(viewingGame.id);
+                          }}
+                          className="text-green-600 hover:text-green-800 font-medium flex items-center gap-1"
+                        >
+                          <Trophy className="h-4 w-4" />
+                          Select Winners
+                        </button>
+                      )
                     ) : (
-                      <p className="text-sm text-gray-500">
-                        Add participants first to select winners
-                      </p>
+                      isAdmin && (
+                        <p className="text-sm text-gray-500">
+                          Add participants first to select winners
+                        </p>
+                      )
                     )}
                   </div>
                 )}

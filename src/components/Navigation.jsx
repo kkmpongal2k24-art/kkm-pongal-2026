@@ -6,18 +6,21 @@ import {
   Trophy,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 function Navigation() {
   const location = useLocation();
   const currentPath = location.pathname.split("/").pop() || "dashboard";
+  const { userRole } = useAuth();
 
-  const navItems = [
+  const allNavItems = [
     {
       id: "dashboard",
       label: "Dashboard",
       icon: BarChart3,
       shortLabel: "Home",
       path: "/dashboard",
+      roles: ["admin", "user"] // Only visible to authenticated users
     },
     {
       id: "contributors",
@@ -25,6 +28,7 @@ function Navigation() {
       icon: IndianRupee,
       shortLabel: "Fund",
       path: "/contributors",
+      roles: ["admin", "user"] // Only visible to authenticated users
     },
     {
       id: "expenses",
@@ -32,6 +36,7 @@ function Navigation() {
       icon: ShoppingBag,
       shortLabel: "Spend",
       path: "/expenses",
+      roles: ["admin", "user"] // Only visible to authenticated users
     },
     {
       id: "games",
@@ -39,6 +44,7 @@ function Navigation() {
       icon: Gamepad2,
       shortLabel: "Games",
       path: "/games",
+      roles: ["guest", "admin", "user"] // Visible to everyone
     },
     {
       id: "winners",
@@ -46,8 +52,14 @@ function Navigation() {
       icon: Trophy,
       shortLabel: "Win",
       path: "/winners",
+      roles: ["guest", "admin", "user"] // Visible to everyone
     },
   ];
+
+  // Filter navigation items based on user role
+  const navItems = allNavItems.filter(item =>
+    item.roles.includes(userRole)
+  );
 
   return (
     <nav className="bg-white shadow-md border-b sticky top-0 z-10">

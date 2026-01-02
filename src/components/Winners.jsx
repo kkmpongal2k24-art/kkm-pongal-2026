@@ -11,10 +11,12 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { winnersApi } from "../lib/api.js";
+import { useAuth } from "../contexts/AuthContext";
 import Skeleton from "./Skeleton";
 import Modal from "./Modal";
 
 function Winners({ data, refreshData, currentYear, isLoading = false }) {
+  const { isAdmin } = useAuth();
   const [viewingGameId, setViewingGameId] = useState(null);
   const [viewingPrizeId, setViewingPrizeId] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(null);
@@ -265,50 +267,64 @@ function Winners({ data, refreshData, currentYear, isLoading = false }) {
                                 )}
                               </div>
                               <div className="relative dropdown-container">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDropdownOpen(dropdownOpen === winner.id ? null : winner.id);
-                                  }}
-                                  className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-all hover:shadow-sm ${
-                                    isPrizeGiven
-                                      ? "bg-green-100 border-green-300 text-green-800 hover:bg-green-200"
-                                      : "bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200"
-                                  }`}
-                                >
-                                  {isPrizeGiven ? "Given" : "Pending"}
-                                  <ChevronDown className="h-3 w-3" />
-                                </button>
+                                {isAdmin ? (
+                                  <>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDropdownOpen(dropdownOpen === winner.id ? null : winner.id);
+                                      }}
+                                      className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border transition-all hover:shadow-sm ${
+                                        isPrizeGiven
+                                          ? "bg-green-100 border-green-300 text-green-800 hover:bg-green-200"
+                                          : "bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200"
+                                      }`}
+                                    >
+                                      {isPrizeGiven ? "Prize Given" : "Pending"}
+                                      <ChevronDown className="h-3 w-3" />
+                                    </button>
 
-                                {dropdownOpen === winner.id && (
-                                  <div className="absolute right-0 top-full mt-1 w-24 bg-white border border-gray-200 rounded-md shadow-lg z-10 dropdown-container">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setDropdownOpen(null);
-                                        if (!isPrizeGiven) {
-                                          togglePrizeGiven(winner.id);
-                                        }
-                                      }}
-                                      className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 text-green-700"
-                                    >
-                                      <Check className="h-3 w-3" />
-                                      Given
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setDropdownOpen(null);
-                                        if (isPrizeGiven) {
-                                          togglePrizeGiven(winner.id);
-                                        }
-                                      }}
-                                      className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 text-amber-700"
-                                    >
-                                      <Clock className="h-3 w-3" />
-                                      Pending
-                                    </button>
-                                  </div>
+                                    {dropdownOpen === winner.id && (
+                                      <div className="absolute right-0 top-full mt-1 w-24 bg-white border border-gray-200 rounded-md shadow-lg z-10 dropdown-container">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDropdownOpen(null);
+                                            if (!isPrizeGiven) {
+                                              togglePrizeGiven(winner.id);
+                                            }
+                                          }}
+                                          className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 text-green-700"
+                                        >
+                                          <Check className="h-3 w-3" />
+                                          Prize Given
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDropdownOpen(null);
+                                            if (isPrizeGiven) {
+                                              togglePrizeGiven(winner.id);
+                                            }
+                                          }}
+                                          className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 text-amber-700"
+                                        >
+                                          <Clock className="h-3 w-3" />
+                                          Pending
+                                        </button>
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border ${
+                                      isPrizeGiven
+                                        ? "bg-green-100 border-green-300 text-green-800"
+                                        : "bg-amber-100 border-amber-300 text-amber-800"
+                                    }`}
+                                  >
+                                    {isPrizeGiven ? "Prize Given" : "Pending"}
+                                  </span>
                                 )}
                               </div>
                             </div>
@@ -446,24 +462,36 @@ function Winners({ data, refreshData, currentYear, isLoading = false }) {
                                 </p>
                               )}
                             </div>
-                            <select
-                              value={isPrizeGiven ? "given" : "pending"}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                const newStatus = e.target.value === "given";
-                                if (newStatus !== isPrizeGiven) {
-                                  togglePrizeGiven(winner.id);
-                                }
-                              }}
-                              className={`text-xs font-medium px-2 py-1 rounded border transition-colors ${
-                                isPrizeGiven
-                                  ? "bg-green-100 border-green-300 text-green-800"
-                                  : "bg-amber-100 border-amber-300 text-amber-800"
-                              }`}
-                            >
-                              <option value="pending">Pending</option>
-                              <option value="given">Given</option>
-                            </select>
+                            {isAdmin ? (
+                              <select
+                                value={isPrizeGiven ? "given" : "pending"}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  const newStatus = e.target.value === "given";
+                                  if (newStatus !== isPrizeGiven) {
+                                    togglePrizeGiven(winner.id);
+                                  }
+                                }}
+                                className={`text-xs font-medium px-2 py-1 rounded border transition-colors ${
+                                  isPrizeGiven
+                                    ? "bg-green-100 border-green-300 text-green-800"
+                                    : "bg-amber-100 border-amber-300 text-amber-800"
+                                }`}
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="given">Prize Given</option>
+                              </select>
+                            ) : (
+                              <span
+                                className={`text-xs font-medium px-2 py-1 rounded border ${
+                                  isPrizeGiven
+                                    ? "bg-green-100 border-green-300 text-green-800"
+                                    : "bg-amber-100 border-amber-300 text-amber-800"
+                                }`}
+                              >
+                                {isPrizeGiven ? "Prize Given" : "Pending"}
+                              </span>
+                            )}
                           </div>
                         </div>
                       );

@@ -42,6 +42,7 @@ export const AuthProvider = ({ children }) => {
     return data
   }
 
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
@@ -49,13 +50,18 @@ export const AuthProvider = ({ children }) => {
     // Clear all local storage data
     localStorage.clear()
 
-    // Redirect to signin page
-    window.location.href = '/signin'
+    // Note: Navigation will be handled by the component calling signOut
   }
 
-  // Save role to localStorage
-  const userRole = user?.email === 'kkmpongal2026@gmail.com' ? 'admin' : 'user'
-  localStorage.setItem('userRole', userRole)
+  // Determine user role
+  const userRole = user?.email === 'kkmpongal2026@gmail.com' ? 'admin' : user ? 'user' : 'guest'
+
+  // Save role to localStorage only if user is authenticated
+  if (user) {
+    localStorage.setItem('userRole', userRole)
+  } else {
+    localStorage.removeItem('userRole')
+  }
 
   const value = {
     user,
@@ -65,7 +71,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     // Simple email-based role check: kkmpongal2026@gmail.com is admin, others are user (view-only)
     isAdmin: user?.email === 'kkmpongal2026@gmail.com',
-    isUser: user?.email !== 'kkmpongal2026@gmail.com',
+    isUser: !!user && user?.email !== 'kkmpongal2026@gmail.com',
     userRole,
   }
 

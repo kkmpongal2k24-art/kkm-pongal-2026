@@ -1,11 +1,22 @@
 import { useState, useRef, useEffect } from "react";
-import { PartyPopper, Plus, Check, X, ChevronDown, LogOut } from "lucide-react";
+import { PartyPopper, Plus, Check, X, ChevronDown, LogOut, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Modal from "./Modal";
 import { yearsApi } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
 
 function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
-  const { signOut } = useAuth();
+  const { signOut, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/signin');
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
   const [showModal, setShowModal] = useState(false);
   const [showYearDropdown, setShowYearDropdown] = useState(false);
   const [newYear, setNewYear] = useState("");
@@ -44,13 +55,23 @@ function Header({ currentYear, setCurrentYear, availableYears, refreshData }) {
 
   return (
     <header className="bg-blue-600 text-white shadow-lg relative">
-      <button
-        onClick={signOut}
-        className="absolute top-24 right-4 bg-red-500 hover:bg-red-400 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center z-10"
-        title="Logout"
-      >
-        <LogOut className="h-4 w-4" />
-      </button>
+      {isAuthenticated ? (
+        <button
+          onClick={handleSignOut}
+          className="absolute top-24 right-4 bg-red-500 hover:bg-red-400 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center z-10"
+          title="Logout"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
+      ) : (
+        <button
+          onClick={() => navigate('/signin')}
+          className="absolute top-24 right-4 bg-blue-500 hover:bg-blue-400 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center z-10"
+          title="Sign In"
+        >
+          <User className="h-4 w-4" />
+        </button>
+      )}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 lg:gap-8">
           <div className="flex-1 min-w-0">
